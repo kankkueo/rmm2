@@ -3,7 +3,7 @@ use std::io;
 //use xmltree::Element;
 
 pub mod files;
-mod config;
+pub mod config;
 pub mod xml;
 
 struct FomodFile {

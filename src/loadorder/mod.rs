@@ -5,39 +5,40 @@ pub struct Plugin {
     pub active: bool,
 }
 
+
+/*
 #[derive(Clone)]
 pub struct Fomod {
     pub plugin: Plugin,
-    author: String,
-    version: String,
-    website: String,
-    groups: String,
-    description: String,
+    pub author: String,
+    pub version: String,
+    pub website: String,
+    pub description: String,
 }
+*/
 
-
-
-impl Fomod {
+impl Plugin {
     fn to_str(&self) -> String {
-        if self.plugin.active {
-            format!("[Active]   {}", self.plugin.name)
+        if self.active {
+            format!("[Active]   {}", self.name)
         }
         else {
-            format!("[Inactive] {}", self.plugin.name)
+            format!("[Inactive] {}", self.name)
         }
     }
 
     pub fn activate(&mut self) {
-        if self.plugin.active {
-            self.plugin.active = false;
+        if self.active {
+            self.active = false;
         }
         else {
-            self.plugin.active = true;
+            self.active = true;
         }
     }
+
 }
 
-pub fn to_strvec(src: &Vec<Fomod>) -> Vec<String> {
+pub fn to_strvec(src: &Vec<Plugin>) -> Vec<String> {
     let mut vec: Vec<String> = Vec::new();
     for i in src.iter() {
         vec.push(i.to_str());
@@ -45,7 +46,7 @@ pub fn to_strvec(src: &Vec<Fomod>) -> Vec<String> {
     vec
 }
 
-pub fn move_up(plugins: &mut Vec<Fomod>, idx: usize) {
+pub fn move_up(plugins: &mut Vec<Plugin>, idx: usize) {
     if idx > 0 {
         let temp = plugins[idx].clone();
         plugins[idx] = plugins[idx - 1].clone();
@@ -53,7 +54,7 @@ pub fn move_up(plugins: &mut Vec<Fomod>, idx: usize) {
     }
 }
 
-pub fn move_down(plugins: &mut Vec<Fomod>, idx: usize) {
+pub fn move_down(plugins: &mut Vec<Plugin>, idx: usize) {
     if idx < plugins.len() - 1 {
         let temp = plugins[idx].clone();
         plugins[idx] = plugins[idx + 1].clone();

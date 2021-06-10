@@ -36,6 +36,12 @@ impl<'a> StateList<'a> {
         }       
     }
 
+    fn update(&mut self, vec: Vec<String>) {
+        for i in 0..vec.len() {
+            self.items[i] = ListItem::new(vec[i].clone());
+        }
+    }
+
     fn select_next(&mut self) {
         match self.state.selected() {
             None => self.state.select(Some(0)),
@@ -63,7 +69,7 @@ impl<'a> StateList<'a> {
     }
 }
 
-pub fn plugin_menu(plugins: &mut Vec<loadorder::Fomod>, plugin_file: &str) -> io::Result<()> {
+pub fn plugin_menu(plugins: &mut Vec<loadorder::Plugin>, plugin_file: &str, mode: usize) -> io::Result<()> {
     let stdout = io::stdout().into_raw_mode()?;
     //let stdout = MouseTerminal::from(stdout);
     let stdout = AlternateScreen::from(stdout);
@@ -72,8 +78,8 @@ pub fn plugin_menu(plugins: &mut Vec<loadorder::Fomod>, plugin_file: &str) -> io
     let events = events::Events::new();
     let mut menu = StateList::from(loadorder::to_strvec(&plugins));
 
-    loop {
-    
+    loop { 
+
         terminal.draw(|f| {
             let chunks = Layout::default()
                 .direction(Direction::Horizontal)
@@ -114,7 +120,7 @@ pub fn plugin_menu(plugins: &mut Vec<loadorder::Fomod>, plugin_file: &str) -> io
         match events.next().unwrap() {
             events::Event::Input(key) => match key {
                 Key::Char('q') => {
-                    //write_loadorder(plugins, plugin_file);
+                    //write_loadorder(plugins, plugin_file, mode);
                     break;
                 }
                 Key::Up => menu.select_prev(),
@@ -122,27 +128,39 @@ pub fn plugin_menu(plugins: &mut Vec<loadorder::Fomod>, plugin_file: &str) -> io
                 Key::Down => menu.select_next(),
                 Key::Char('j') => menu.select_next(),
                 Key::Char('\n') => match menu.state.selected() {
-                    Some(x) => plugins[x].activate(),
+                    Some(x) => {
+                        plugins[x].activate();
+                        menu.update(loadorder::to_strvec(&plugins));
+                    }
                     None => continue,
                 }
                 Key::Char(' ') => match menu.state.selected() {
-                    Some(x) => plugins[x].activate(),
+                    Some(x) => {
+                        plugins[x].activate();
+                        menu.update(loadorder::to_strvec(&plugins));
+                    }
                     None => continue,
                 }
                 Key::Char('w') => match menu.state.selected() {
-                    Some(x) => loadorder::move_up(plugins, x),
+                    Some(x) => {
+                        loadorder::move_up(plugins, x);
+                        menu.update(loadorder::to_strvec(&plugins));
+                        menu.select_prev();
+                    }
                     None => continue,
                 }
                 Key::Char('s') => match menu.state.selected() {
-                    Some(x) => loadorder::move_down(plugins, x),
+                    Some(x) => {
+                        loadorder::move_down(plugins, x);
+                        menu.update(loadorder::to_strvec(&plugins));
+                        menu.select_next();
+                    } 
                     None => continue,
                 }
                 _default => continue,
             }
             events::Event::Tick => continue,
         }
-    
-
 
 
     }
