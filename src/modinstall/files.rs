@@ -45,10 +45,12 @@ pub fn get_active_mods(path_d: &str, path_p: &str, mode: usize) -> Vec<Plugin> {
     let buffer = fs::read_to_string(path_p).expect("Could not read file");
 
     for i in buffer.split('\n') {
-        plugins.push( Plugin {
-            name: ignore_asterix(i),
-            active: true,
-        } );
+        if i != "" && i != " " && i != "\n" {
+            plugins.push( Plugin {
+                name: ignore_asterix(i),
+                active: true,
+            } );
+        }
     }
 
     let installed = get_installed_mods(path_d);
@@ -59,12 +61,12 @@ pub fn get_active_mods(path_d: &str, path_p: &str, mode: usize) -> Vec<Plugin> {
             if i == &plugins[j].name {
                 act = true;
             }
-            if !act {
-                plugins.push( Plugin {
-                    name: i.to_string(),
-                    active: false,
-                });
-            }
+        }
+        if !act {
+            plugins.push( Plugin {
+                name: i.to_string(),
+                active: false,
+            });
         }
     }
     plugins
