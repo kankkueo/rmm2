@@ -68,6 +68,17 @@ fn check_if_dir(path: &str) -> bool {
     }
 }
 
+fn step_dir(path: &str) -> String {
+    let contents = files::read_datadir(path);
+    if contents.len() == 1 {
+        let new = format!("{}/{}/", path, contents[0]);
+        if check_if_dir(&new) {
+            return new;
+        }
+    }
+    path.to_string()
+}
+
 fn fix_case(src: &str) -> String {
     let mut dest = String::new();
     let mut k = 0;
@@ -153,7 +164,7 @@ fn check_if_fomod(src: &str) -> bool {
 
     for i in 0..archive.len() {
         let file = archive.by_index(i).unwrap();        
-        if file.name().contains("Fomod") || file.name().contains("fomod") {
+        if (file.name().contains("Fomod") || file.name().contains("fomod")) && file.name().contains("ModuleConfig") {
             return true;
         }
     }
@@ -289,6 +300,7 @@ fn print_plugins(group: &FomodGroup) {
 pub fn install_fomod(src: &str, dest: &str) -> io::Result<()> {
     let src_p = format!("{}{}", get_dir(src), "temp/");
     unpack(src, &src_p)?;
+    let src_p = step_dir(&src_p);
     let installtxt = format!("{}{}", src_p, "Fomod/ModuleConfig.xml");
 
     let i_steps = xml::get_children_r(xml::read_xml_file(&installtxt), "installStep");
@@ -338,6 +350,7 @@ pub fn install_fomod(src: &str, dest: &str) -> io::Result<()> {
 pub fn install_non_fomod(src: &str, dest: &str) -> io::Result<()> {
     let src_p = format!("{}{}", get_dir(src), "temp/");
     unpack(src, &src_p)?;
+    let src_p = step_dir(&src_p);
     cap_dir(&src_p);
     move_files_all(&src_p, dest)?;
     fs::remove_dir_all(src_p)?;
@@ -346,10 +359,8 @@ pub fn install_non_fomod(src: &str, dest: &str) -> io::Result<()> {
 
 pub fn configtest(mode: usize) {
     let f = config::read_config(mode);
-    println!("{}", f.data);
-    println!("{}", f.plugins);
+    println!("{}", check_if_fomod(&f.plugins));
 }
-
 
 
 

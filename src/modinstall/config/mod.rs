@@ -17,6 +17,7 @@ struct Gamepaths {
 pub struct Gamepath {
     pub data: String,
     pub plugins: String,
+    pub mods: String,
 }
 
 fn create_conf_file(conf: &str) -> io::Result<()> {
@@ -37,9 +38,43 @@ fn create_game_conf(mode: usize) -> Gamepath {
     io::stdin().read_line(&mut d).unwrap();
 
     Gamepath {
-        data: d.clone(),
+        data: fix_data_path(&d),
         plugins: get_plugin_path(&d, mode),
+        mods: get_mod_path(&d),
     }
+}
+
+fn fix_data_path(path: &str) -> String {
+    let mut buff = String::from("/");
+    for i in path.split('/') {
+        if i == "Data" || i == "data" {
+            buff.push_str("Data/");
+            break;
+        }
+        else {
+            buff.push_str(i);
+            buff.push('/');
+        }
+        
+    }
+    buff
+}
+
+fn get_mod_path(path: &str) -> String {
+    let mut buff = String::from("/");
+    for i in path.split('/') {
+        if i == "Data" {
+            buff.push_str("Mods/");
+            break;
+        }
+        else {
+            buff.push_str(i);
+            buff.push('/');
+        }
+        
+    }
+    fs::create_dir_all(&buff).unwrap();
+    buff
 }
 
 fn get_plugin_path(path: &str, mode: usize) -> String {

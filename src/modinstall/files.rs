@@ -18,17 +18,13 @@ pub fn read_datadir(path: &str) -> Vec<String> {
     data_v
 }
 
-fn get_installed_mods(path: &str) -> Vec<Plugin> {
-    let mut plugins: Vec<Plugin> = Vec::new();
+fn get_installed_mods(path: &str) -> Vec<String> {
+    let mut plugins: Vec<String> = Vec::new();
     let data: Vec<String> = read_datadir(path);
 
-    for i in 0..data.len() {
-        if data[i].contains(".esp") {
-            let plugin_t = Plugin {
-                name: data[i].clone(),
-                active: false,    
-            };
-            plugins.push(plugin_t);
+    for i in data.iter() {
+        if i.contains(".esp") {
+            plugins.push(i.to_string());
         }
     }
     plugins
@@ -45,20 +41,29 @@ fn ignore_asterix(src: &str) -> String {
 }
 
 pub fn get_active_mods(path_d: &str, path_p: &str, mode: usize) -> Vec<Plugin> {
-    let mut plugins: Vec<Plugin> = get_installed_mods(path_d);
+    let mut plugins: Vec<Plugin> = Vec::new();
     let buffer = fs::read_to_string(path_p).expect("Could not read file");
 
     for i in buffer.split('\n') {
-        for k in 0..plugins.len() {
-            if mode == 1 || mode == 3 {
-                if ignore_asterix(i) == plugins[k].name {
-                    plugins[k].active = true;
-                }
+        plugins.push( Plugin {
+            name: ignore_asterix(i),
+            active: true,
+        } );
+    }
+
+    let installed = get_installed_mods(path_d);
+
+    for i in installed.iter() {
+        let mut act = false;
+        for j in 0..plugins.len() {
+            if i == &plugins[j].name {
+                act = true;
             }
-            else {
-                if i == plugins[k].name {
-                    plugins[k].active = true;
-                }
+            if !act {
+                plugins.push( Plugin {
+                    name: i.to_string(),
+                    active: false,
+                });
             }
         }
     }

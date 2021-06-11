@@ -10,6 +10,7 @@ fn main() -> io::Result<()> {
     let mut plugins = modinstall::files::get_active_mods(&config.data, &config.plugins, 1);
     ui::plugin_menu(&mut plugins, &config.plugins, 1).unwrap();
 
+
     Ok(()) 
 }
 
