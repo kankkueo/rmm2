@@ -297,7 +297,7 @@ fn print_plugins(group: &FomodGroup) {
     }
 }
 
-pub fn install_fomod(src: &str, dest: &str) -> io::Result<()> {
+fn install_fomod(src: &str, dest: &str) -> io::Result<()> {
     let src_p = format!("{}{}", get_dir(src), "temp/");
     unpack(src, &src_p)?;
     let src_p = step_dir(&src_p);
@@ -347,13 +347,23 @@ pub fn install_fomod(src: &str, dest: &str) -> io::Result<()> {
 
 }
 
-pub fn install_non_fomod(src: &str, dest: &str) -> io::Result<()> {
+fn install_non_fomod(src: &str, dest: &str) -> io::Result<()> {
     let src_p = format!("{}{}", get_dir(src), "temp/");
     unpack(src, &src_p)?;
     let src_p = step_dir(&src_p);
     cap_dir(&src_p);
     move_files_all(&src_p, dest)?;
     fs::remove_dir_all(src_p)?;
+    Ok(())
+}
+
+pub fn install_mod(src: &str, dest: &str) -> io::Result<()> {
+    if check_if_fomod(src) {
+        install_fomod(src, dest)?;
+    }
+    else {
+        install_non_fomod(src, dest)?;
+    }
     Ok(())
 }
 

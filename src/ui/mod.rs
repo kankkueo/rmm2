@@ -9,7 +9,7 @@ use tui::layout::{Layout, Constraint, Direction};
 use tui::style::{Color, Modifier, Style};
 
 use crate::loadorder;
-use crate::modinstall::files::write_loadorder;
+use crate::modinstall::{files::write_loadorder, install_mod, config::Gamepath, files::read_datadir};
 mod events;
 
 struct StateList<'a> {
@@ -69,7 +69,82 @@ impl<'a> StateList<'a> {
     }
 }
 
-pub fn plugin_menu(plugins: &mut Vec<loadorder::Plugin>, plugin_file: &str, mode: usize) -> io::Result<()> {
+fn install_menu(paths: Gamepath) -> io::Result<()> {
+ 
+    let stdout = io::stdout().into_raw_mode()?;
+    //let stdout = MouseTerminal::from(stdout);
+    let backend = TermionBackend::new(stdout);
+    let mut terminal = Terminal::new(backend)?;
+    let events = events::Events::new();
+
+    let mods = read_datadir(&paths.mods);
+    let mut menu = StateList::from(mods.clone());
+
+    loop {
+        terminal.draw(|f| {
+            let chunks = Layout::default()
+                .direction(Direction::Horizontal)
+                .margin(1)
+                .constraints([
+                    Constraint::Percentage(50),
+                    Constraint::Percentage(50),
+    
+                ].as_ref())
+                .split(f.size());
+    
+            let list = List::new(menu.items.clone())
+                .block(
+                    Block::default()
+                        .title("Installable mods")
+                        .borders(Borders::ALL)
+                        .border_style(
+                            Style::default()
+                                .fg(Color::Rgb(255, 255, 255))
+                        )
+                )
+                .style(
+                    Style::default()
+                        .fg(Color::Rgb(0, 255, 155))
+                )
+                .highlight_style(
+                    Style::default()
+                        .fg(Color::Rgb(255, 0, 0))
+                        .add_modifier(Modifier::BOLD)
+                );
+
+            f.render_stateful_widget(list, chunks[1], &mut menu.state);
+        })?;
+
+        match events.next().unwrap() {
+            events::Event::Input(key) => match key {
+                Key::Char('q') => break, 
+                Key::Char('h') => break,
+                Key::Left=> break,
+                Key::Up => menu.select_prev(),
+                Key::Char('k') => menu.select_prev(),
+                Key::Down => menu.select_next(),
+                Key::Char('j') => menu.select_next(),
+                Key::Char('\n') => match menu.state.selected() {
+                    Some(x) => {
+                        match install_mod(&mods[x], &paths.data) {
+                            Ok(()) => continue,
+                            _default => println!("Installation failed. Please install manually"),
+                        }
+                        let mods = read_datadir(&paths.mods);
+                        menu.update(mods);
+                    }
+                    None => continue,
+                }
+                _default => continue,
+            }
+            events::Event::Tick => continue,
+        }
+    }
+
+    Ok(())
+}
+
+pub fn plugin_menu(plugins: &mut Vec<loadorder::Plugin>, paths: Gamepath, mode: usize) -> io::Result<()> {
     let stdout = io::stdout().into_raw_mode()?;
     //let stdout = MouseTerminal::from(stdout);
     let stdout = AlternateScreen::from(stdout);
@@ -112,17 +187,16 @@ pub fn plugin_menu(plugins: &mut Vec<loadorder::Plugin>, plugin_file: &str, mode
                 );
 
             f.render_stateful_widget(list, chunks[0], &mut menu.state);
-
-        
         })?;
-
 
         match events.next().unwrap() {
             events::Event::Input(key) => match key {
                 Key::Char('q') => {
-                    //write_loadorder(plugins, plugin_file, mode);
+                    let w_plugs = plugins.clone();
+                    write_loadorder(w_plugs, &paths.plugins, mode);
                     break;
                 }
+                Key::Char('l') => install_menu(paths.clone()).unwrap(),
                 Key::Up => menu.select_prev(),
                 Key::Char('k') => menu.select_prev(),
                 Key::Down => menu.select_next(),
@@ -161,17 +235,8 @@ pub fn plugin_menu(plugins: &mut Vec<loadorder::Plugin>, plugin_file: &str, mode
             }
             events::Event::Tick => continue,
         }
-
-
     }
     Ok(())
 }  
-
-
-
-
-
-
-
 
 

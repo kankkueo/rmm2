@@ -13,7 +13,7 @@ struct Gamepaths {
     fallout3: Option<Gamepath>,     //6
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct Gamepath {
     pub data: String,
     pub plugins: String,
@@ -55,8 +55,8 @@ fn fix_data_path(path: &str) -> String {
             buff.push_str(i);
             buff.push('/');
         }
-        
     }
+    super::cap_dir(&buff);
     buff
 }
 
