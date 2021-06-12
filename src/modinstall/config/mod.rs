@@ -47,7 +47,7 @@ fn create_game_conf(mode: usize) -> Gamepath {
 fn fix_data_path(path: &str) -> String {
     let mut buff = String::new();
     for i in path.split('/') {
-        if i.contains("Data") || i.contains("data") {
+        if (i.contains("Data") || i.contains("data")) && buff.contains("common") {
             buff.push_str("Data/");
             break;
         }
@@ -63,7 +63,7 @@ fn fix_data_path(path: &str) -> String {
 fn get_mod_path(path: &str) -> String {
     let mut buff = String::new();
     for i in path.split('/') {
-        if i.contains("Data") || i.contains("data") {
+        if (i.contains("Data") || i.contains("data")) && buff.contains("common") {
             buff.push_str("Mods/");
             break;
         }
@@ -85,14 +85,14 @@ fn create_plugin_file(path: &str) -> io::Result<()> {
 }
 
 fn get_plugin_path(path: &str, mode: usize) -> String {
-    let mut buff = String::from("/");
+    let mut buff = String::new();
     let paths = vec![
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
+        "/steamapps/compatdata/489830/pfx/drive_c/users/steamuser/Local Settings/Application Data/Skyrim Special Edition/plugins.txt",
+        "/steamapps/compatdata/489830/pfx/drive_c/users/steamuser/Local Settings/Application Data/Skyrim Special Edition/plugins.txt",
+        "/steamapps/compatdata/489830/pfx/drive_c/users/steamuser/Local Settings/Application Data/Skyrim Special Edition/plugins.txt",
+        "/steamapps/compatdata/489830/pfx/drive_c/users/steamuser/Local Settings/Application Data/Skyrim Special Edition/plugins.txt",
+        "/steamapps/compatdata/489830/pfx/drive_c/users/steamuser/Local Settings/Application Data/Skyrim Special Edition/plugins.txt",
+        "/steamapps/compatdata/489830/pfx/drive_c/users/steamuser/Local Settings/Application Data/Skyrim Special Edition/plugins.txt",
     ];
 
     for i in path.split('/') {
