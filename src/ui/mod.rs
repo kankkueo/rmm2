@@ -9,7 +9,7 @@ use tui::layout::{Layout, Constraint, Direction};
 use tui::style::{Color, Modifier, Style};
 
 use crate::loadorder;
-use crate::modinstall::{files::write_loadorder, install_mod, config::Gamepath, files::read_datadir};
+use crate::modinstall::{files::write_loadorder, install_mod, config::Gamepath};
 mod events;
 
 struct StateList<'a> {
@@ -69,22 +69,21 @@ impl<'a> StateList<'a> {
     }
 }
 
-fn install_menu(paths: Gamepath) -> io::Result<()> {
- 
+pub fn selection_menu(items: Vec<String>) -> io::Result<usize> {
+
     let stdout = io::stdout().into_raw_mode()?;
-    //let stdout = MouseTerminal::from(stdout);
+    let stdout = AlternateScreen::from(stdout);
     let backend = TermionBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
     let events = events::Events::new();
-
-    let mods = read_datadir(&paths.mods);
-    let mut menu = StateList::from(mods.clone());
+    let mut menu = StateList::from(items);
 
     loop {
+
         terminal.draw(|f| {
             let chunks = Layout::default()
                 .direction(Direction::Horizontal)
-                .margin(1)
+                .margin(3)
                 .constraints([
                     Constraint::Percentage(50),
                     Constraint::Percentage(50),
@@ -95,7 +94,7 @@ fn install_menu(paths: Gamepath) -> io::Result<()> {
             let list = List::new(menu.items.clone())
                 .block(
                     Block::default()
-                        .title("Installable mods")
+                        .title("Installer")
                         .borders(Borders::ALL)
                         .border_style(
                             Style::default()
@@ -112,27 +111,22 @@ fn install_menu(paths: Gamepath) -> io::Result<()> {
                         .add_modifier(Modifier::BOLD)
                 );
 
-            f.render_stateful_widget(list, chunks[1], &mut menu.state);
+           f.render_stateful_widget(list, chunks[0], &mut menu.state);
+
         })?;
+
 
         match events.next().unwrap() {
             events::Event::Input(key) => match key {
-                Key::Char('q') => break, 
-                Key::Char('h') => break,
-                Key::Left=> break,
+                Key::Char('q') => {
+                    break;
+                }
                 Key::Up => menu.select_prev(),
                 Key::Char('k') => menu.select_prev(),
                 Key::Down => menu.select_next(),
                 Key::Char('j') => menu.select_next(),
                 Key::Char('\n') => match menu.state.selected() {
-                    Some(x) => {
-                        match install_mod(&mods[x], &paths.data) {
-                            Ok(()) => continue,
-                            _default => println!("Installation failed. Please install manually"),
-                        }
-                        let mods = read_datadir(&paths.mods);
-                        menu.update(mods);
-                    }
+                    Some(x) => {return Ok(x);},
                     None => continue,
                 }
                 _default => continue,
@@ -141,17 +135,21 @@ fn install_menu(paths: Gamepath) -> io::Result<()> {
         }
     }
 
-    Ok(())
+    Ok(2)
+ 
 }
 
-pub fn plugin_menu(plugins: &mut Vec<loadorder::Plugin>, paths: Gamepath, mode: usize) -> io::Result<()> {
+pub fn plugin_menu(plugins: &mut Vec<loadorder::Plugin>, mods: &mut Vec<String>,paths: Gamepath, mode: usize) -> io::Result<()> {
     let stdout = io::stdout().into_raw_mode()?;
     //let stdout = MouseTerminal::from(stdout);
     let stdout = AlternateScreen::from(stdout);
     let backend = TermionBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
     let events = events::Events::new();
-    let mut menu = StateList::from(loadorder::to_strvec(&plugins));
+    let mut menu: Vec<StateList> = Vec::new();
+    menu.push(StateList::from(loadorder::to_strvec(&plugins)));
+    menu.push(StateList::from(mods.to_vec()));
+    let mut sclt = 0;
 
     loop { 
 
@@ -166,7 +164,7 @@ pub fn plugin_menu(plugins: &mut Vec<loadorder::Plugin>, paths: Gamepath, mode: 
                 ].as_ref())
                 .split(f.size());
     
-            let list = List::new(menu.items.clone())
+            let plugin_list = List::new(menu[0].items.clone())
                 .block(
                     Block::default()
                         .title("Plugins")
@@ -186,7 +184,29 @@ pub fn plugin_menu(plugins: &mut Vec<loadorder::Plugin>, paths: Gamepath, mode: 
                         .add_modifier(Modifier::BOLD)
                 );
 
-            f.render_stateful_widget(list, chunks[0], &mut menu.state);
+             let mod_list = List::new(menu[1].items.clone())
+                .block(
+                    Block::default()
+                        .title("Installable mods")
+                        .borders(Borders::ALL)
+                        .border_style(
+                            Style::default()
+                                .fg(Color::Rgb(255, 255, 255))
+                        )
+                )
+                .style(
+                    Style::default()
+                        .fg(Color::Rgb(0, 255, 155))
+                )
+                .highlight_style(
+                    Style::default()
+                        .fg(Color::Rgb(255, 0, 0))
+                        .add_modifier(Modifier::BOLD)
+                );
+
+            f.render_stateful_widget(plugin_list, chunks[0], &mut menu[0].state);
+            f.render_stateful_widget(mod_list, chunks[1], &mut menu[1].state);
+
         })?;
 
         match events.next().unwrap() {
@@ -196,38 +216,63 @@ pub fn plugin_menu(plugins: &mut Vec<loadorder::Plugin>, paths: Gamepath, mode: 
                     write_loadorder(w_plugs, &paths.plugins, mode);
                     break;
                 }
-                Key::Char('l') => install_menu(paths.clone()).unwrap(),
-                Key::Up => menu.select_prev(),
-                Key::Char('k') => menu.select_prev(),
-                Key::Down => menu.select_next(),
-                Key::Char('j') => menu.select_next(),
-                Key::Char('\n') => match menu.state.selected() {
+                Key::Char('l') => {
+                    if sclt == 0 { sclt = 1; }
+                    else { sclt = 0; }
+                    menu[sclt].unselect();
+                }
+                Key::Right => {
+                    if sclt == 0 { sclt = 1; }
+                    else { sclt = 0; }
+                    menu[sclt].unselect();
+                }
+                Key::Char('h') => {
+                    if sclt == 0 { sclt = 1; }
+                    else { sclt = 0; }
+                    menu[sclt].unselect();
+                }
+                Key::Left => {
+                    if sclt == 0 { sclt = 1; }
+                    else { sclt = 0; }
+                    menu[sclt].unselect();
+                }
+                Key::Up => menu[sclt].select_prev(),
+                Key::Char('k') => menu[sclt].select_prev(),
+                Key::Down => menu[sclt].select_next(),
+                Key::Char('j') => menu[sclt].select_next(),
+                Key::Char('\n') => match menu[sclt].state.selected() {
                     Some(x) => {
-                        plugins[x].activate();
-                        menu.update(loadorder::to_strvec(&plugins));
+                        if sclt == 0 {
+                            plugins[x].activate();
+                            menu[sclt].update(loadorder::to_strvec(&plugins));
+                        }
+                        else {
+                            //install_mod(&mods[x], &paths.data);
+                            if mods.len() > 0 {
+                                mods.remove(x);
+                                menu[sclt].update(mods.to_vec());
+                            }
+                        }
                     }
                     None => continue,
                 }
-                Key::Char(' ') => match menu.state.selected() {
+                Key::Char('w') => match menu[sclt].state.selected() {
                     Some(x) => {
-                        plugins[x].activate();
-                        menu.update(loadorder::to_strvec(&plugins));
+                        if sclt == 0 {
+                            loadorder::move_down(plugins, x);
+                            menu[sclt].update(loadorder::to_strvec(&plugins));
+                            menu[sclt].select_next();
+                        }
                     }
                     None => continue,
                 }
-                Key::Char('w') => match menu.state.selected() {
+                Key::Char('s') => match menu[sclt].state.selected() {
                     Some(x) => {
-                        loadorder::move_up(plugins, x);
-                        menu.update(loadorder::to_strvec(&plugins));
-                        menu.select_prev();
-                    }
-                    None => continue,
-                }
-                Key::Char('s') => match menu.state.selected() {
-                    Some(x) => {
-                        loadorder::move_down(plugins, x);
-                        menu.update(loadorder::to_strvec(&plugins));
-                        menu.select_next();
+                        if sclt == 0 {
+                            loadorder::move_down(plugins, x);
+                            menu[sclt].update(loadorder::to_strvec(&plugins));
+                            menu[sclt].select_next();
+                        }
                     } 
                     None => continue,
                 }
@@ -237,6 +282,7 @@ pub fn plugin_menu(plugins: &mut Vec<loadorder::Plugin>, paths: Gamepath, mode: 
         }
     }
     Ok(())
+
 }  
 
 
