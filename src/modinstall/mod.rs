@@ -3,7 +3,6 @@ use std::io;
 //use xmltree::Element;
 
 pub mod files;
-pub mod config;
 pub mod xml;
 
 struct FomodFile {
@@ -367,10 +366,6 @@ pub fn install_mod(src: &str, dest: &str) -> io::Result<()> {
     Ok(())
 }
 
-pub fn configtest(mode: usize) {
-    let f = config::read_config(mode);
-    println!("{}", check_if_fomod(&f.plugins));
-}
 
 
 

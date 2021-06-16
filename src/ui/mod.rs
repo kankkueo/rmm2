@@ -9,7 +9,8 @@ use tui::layout::{Layout, Constraint, Direction};
 use tui::style::{Color, Modifier, Style};
 
 use crate::loadorder;
-use crate::modinstall::{files::write_loadorder, install_mod, config::Gamepath};
+use crate::modinstall::{files::write_loadorder, install_mod};
+use crate::config::Gamepath;
 mod events;
 
 struct StateList<'a> {
@@ -217,24 +218,28 @@ pub fn plugin_menu(plugins: &mut Vec<loadorder::Plugin>, mods: &mut Vec<String>,
                     break;
                 }
                 Key::Char('l') => {
+                    menu[sclt].unselect();
                     if sclt == 0 { sclt = 1; }
                     else { sclt = 0; }
-                    menu[sclt].unselect();
+                    menu[sclt].select_next();
                 }
                 Key::Right => {
+                    menu[sclt].unselect();
                     if sclt == 0 { sclt = 1; }
                     else { sclt = 0; }
-                    menu[sclt].unselect();
+                    menu[sclt].select_next();
                 }
                 Key::Char('h') => {
+                    menu[sclt].unselect();
                     if sclt == 0 { sclt = 1; }
                     else { sclt = 0; }
-                    menu[sclt].unselect();
+                    menu[sclt].select_next();
                 }
                 Key::Left => {
+                    menu[sclt].unselect();
                     if sclt == 0 { sclt = 1; }
                     else { sclt = 0; }
-                    menu[sclt].unselect();
+                    menu[sclt].select_next();
                 }
                 Key::Up => menu[sclt].select_prev(),
                 Key::Char('k') => menu[sclt].select_prev(),

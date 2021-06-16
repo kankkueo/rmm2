@@ -2,6 +2,7 @@ use std::fs;
 use serde_derive::{Deserialize, Serialize};
 use std::env;
 use std::io;
+use crate::modinstall::cap_dir;
 
 #[derive(Deserialize, Serialize)]
 struct Gamepaths {
@@ -56,7 +57,7 @@ fn fix_data_path(path: &str) -> String {
             buff.push('/');
         }
     }
-    super::cap_dir(&buff);
+    cap_dir(&buff);
     buff
 }
 
