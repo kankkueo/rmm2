@@ -358,9 +358,11 @@ fn install_non_fomod(src: &str, dest: &str) -> io::Result<()> {
 
 pub fn install_mod(src: &str, dest: &str) -> io::Result<()> {
     if check_if_fomod(src) {
+        println!("joo");
         install_fomod(src, dest)?;
     }
     else {
+        println!("ei");
         install_non_fomod(src, dest)?;
     }
     Ok(())

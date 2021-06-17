@@ -9,10 +9,10 @@ use tui::layout::{Layout, Constraint, Direction};
 use tui::style::{Color, Modifier, Style};
 
 use crate::loadorder;
-//use crate::modinstall::install_mod;
 use crate::files::write_loadorder;
 use crate::config::Gamepath;
 pub mod events;
+pub mod installer;
 
 struct StateList<'a> {
     items: Vec<ListItem<'a>>,
@@ -139,7 +139,7 @@ pub fn mode_selection_menu(events: &events::Events) -> io::Result<usize> {
     }
 }
 
-pub fn plugin_menu(plugins: &mut Vec<loadorder::Plugin>, mods: &mut Vec<String>,paths: Gamepath, mode: usize, events: &events::Events) -> io::Result<()> {
+pub fn plugin_menu(plugins: &mut Vec<loadorder::Plugin>, mods: &mut Vec<String>,paths: Gamepath, mode: usize, events: &events::Events) -> io::Result<Option<String>> {
     let stdout = io::stdout().into_raw_mode()?;
     //let stdout = MouseTerminal::from(stdout);
     let stdout = AlternateScreen::from(stdout);
@@ -250,11 +250,8 @@ pub fn plugin_menu(plugins: &mut Vec<loadorder::Plugin>, mods: &mut Vec<String>,
                             menu[sclt].update(loadorder::to_strvec(&plugins));
                         }
                         else {
-                            //install_mod(&mods[x], &paths.data);
-                            if mods.len() > 0 {
-                                mods.remove(x);
-                                menu[sclt].update(mods.to_vec());
-                            }
+                            let src_p = format!("{}{}", paths.mods, mods[x]);
+                            return Ok(Some(src_p));
                         }
                     }
                     None => continue,
@@ -284,7 +281,7 @@ pub fn plugin_menu(plugins: &mut Vec<loadorder::Plugin>, mods: &mut Vec<String>,
             events::Event::Tick => continue,
         }
     }
-    Ok(())
+    Ok(None)
 
 }  
 
