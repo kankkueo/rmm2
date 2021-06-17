@@ -12,7 +12,7 @@ use crate::loadorder;
 //use crate::modinstall::install_mod;
 use crate::files::write_loadorder;
 use crate::config::Gamepath;
-mod events;
+pub mod events;
 
 struct StateList<'a> {
     items: Vec<ListItem<'a>>,
@@ -71,24 +71,29 @@ impl<'a> StateList<'a> {
     }
 }
 
-pub fn selection_menu(items: Vec<String>) -> io::Result<usize> {
+pub fn mode_selection_menu(events: &events::Events) -> io::Result<usize> {
 
     let stdout = io::stdout().into_raw_mode()?;
     let stdout = AlternateScreen::from(stdout);
     let backend = TermionBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
-    let events = events::Events::new();
-    let mut menu = StateList::from(items);
+    let mut menu = StateList::from( vec![
+        String::from("Skyrim Special edition"),
+        String::from("Skyrim"),
+        String::from("Oblivion"),
+        String::from("Fallout 4"),
+        String::from("Fallout New Vegas"),
+        String::from("Fallout 3"),
+    ] );
 
     loop {
 
         terminal.draw(|f| {
             let chunks = Layout::default()
                 .direction(Direction::Horizontal)
-                .margin(3)
+                .margin(10)
                 .constraints([
-                    Constraint::Percentage(50),
-                    Constraint::Percentage(50),
+                    Constraint::Percentage(100),
     
                 ].as_ref())
                 .split(f.size());
@@ -96,7 +101,7 @@ pub fn selection_menu(items: Vec<String>) -> io::Result<usize> {
             let list = List::new(menu.items.clone())
                 .block(
                     Block::default()
-                        .title("Installer")
+                        .title("Select game to manage")
                         .borders(Borders::ALL)
                         .border_style(
                             Style::default()
@@ -117,18 +122,14 @@ pub fn selection_menu(items: Vec<String>) -> io::Result<usize> {
 
         })?;
 
-
         match events.next().unwrap() {
             events::Event::Input(key) => match key {
-                Key::Char('q') => {
-                    break;
-                }
                 Key::Up => menu.select_prev(),
                 Key::Char('k') => menu.select_prev(),
                 Key::Down => menu.select_next(),
                 Key::Char('j') => menu.select_next(),
                 Key::Char('\n') => match menu.state.selected() {
-                    Some(x) => {return Ok(x);},
+                    Some(x) => {return Ok(x + 1);},
                     None => continue,
                 }
                 _default => continue,
@@ -136,18 +137,14 @@ pub fn selection_menu(items: Vec<String>) -> io::Result<usize> {
             events::Event::Tick => continue,
         }
     }
-
-    Ok(2)
- 
 }
 
-pub fn plugin_menu(plugins: &mut Vec<loadorder::Plugin>, mods: &mut Vec<String>,paths: Gamepath, mode: usize) -> io::Result<()> {
+pub fn plugin_menu(plugins: &mut Vec<loadorder::Plugin>, mods: &mut Vec<String>,paths: Gamepath, mode: usize, events: &events::Events) -> io::Result<()> {
     let stdout = io::stdout().into_raw_mode()?;
     //let stdout = MouseTerminal::from(stdout);
     let stdout = AlternateScreen::from(stdout);
     let backend = TermionBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
-    let events = events::Events::new();
     let mut menu: Vec<StateList> = Vec::new();
     menu.push(StateList::from(loadorder::to_strvec(&plugins)));
     menu.push(StateList::from(mods.to_vec()));
