@@ -9,7 +9,8 @@ use tui::layout::{Layout, Constraint, Direction};
 use tui::style::{Color, Modifier, Style};
 
 use crate::loadorder;
-use crate::modinstall::{files::write_loadorder, install_mod};
+//use crate::modinstall::install_mod;
+use crate::files::write_loadorder;
 use crate::config::Gamepath;
 mod events;
 

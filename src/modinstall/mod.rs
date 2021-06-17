@@ -2,8 +2,8 @@ use std::fs;
 use std::io;
 //use xmltree::Element;
 
-pub mod files;
 pub mod xml;
+use crate::files;
 
 struct FomodFile {
     source: String,
