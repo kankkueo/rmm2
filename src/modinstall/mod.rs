@@ -3,11 +3,12 @@ use std::io;
 //use xmltree::Element;
 
 pub mod xml;
+mod paths;
 use crate::files;
 
 struct FomodFile {
-    source: String,
-    destination: String,
+    source: paths::Path,
+    destination: paths::Path,
     ftype: String,
 }
 
@@ -47,36 +48,6 @@ impl FomodGroup {
     }
 }
 
-fn get_dir(src: &str) -> String {
-    let mut dir = String::new();
-    let mut dir_t: Vec<&str> = Vec::new();
-    for i in src.split('/') {
-        dir_t.push(i);
-    }
-    for i in 0..dir_t.len()-1 {
-        dir.push_str(dir_t[i]);
-        dir.push('/');
-    }
-    dir
-}
-
-fn check_if_dir(path: &str) -> bool {
-    match fs::read_dir(path) {
-        Err(_e) => false,
-        Ok(_x) => true,
-    }
-}
-
-fn step_dir(path: &str) -> String {
-    let contents = files::read_datadir(path);
-    if contents.len() == 1 {
-        let new = format!("{}/{}/", path, contents[0]);
-        if check_if_dir(&new) {
-            return new;
-        }
-    }
-    path.to_string()
-}
 
 fn fix_case(src: &str) -> String {
     let mut dest = String::new();
@@ -103,28 +74,23 @@ fn fix_case_path(src: &str) -> String {
     dest
 }
 
-pub fn cap_dir(src: &str) {
-    let contents: Vec<String> = files::read_datadir(src);
+pub fn cap_dir(src: paths::Path) {
+    let contents: Vec<String> = files::read_datadir(&src.path);
     for i in 0..contents.len() {
 
-        let mut dir = format!("{}/{}/", src, contents[i]);
-        let mut dir_c = format!("{}/{}/", src, fix_case(&contents[i]));
+        let dir = src.clone().push(&contents[i]);
+        let dir_c = src.clone().push(&fix_case(&contents[i]));
 
-        if src.ends_with('/') {
-            dir = format!("{}{}/", src, contents[i]);
-            dir_c = format!("{}{}/", src, fix_case(&contents[i]));
-        }
-
-        if check_if_dir(&dir) {
-            fs::rename(&dir, &dir_c).unwrap();
-            cap_dir(&dir_c);
+        if dir.is_dir() {
+            fs::rename(&dir.path, &dir_c.path).unwrap();
+            cap_dir(dir_c);
         }
     }
 }
 
-fn unpack(src: &str, dest: &str) -> io::Result<()> {
+fn unpack(src: paths::Path, dest: paths::Path) -> io::Result<()> {
 
-    let fname = std::path::Path::new(src);
+    let fname = std::path::Path::new(&src.path);
     let file = fs::File::open(fname)?;
     let mut archive = zip::ZipArchive::new(&file)?;
 
@@ -133,7 +99,7 @@ fn unpack(src: &str, dest: &str) -> io::Result<()> {
     let mut file_size: f32 = 0.0;
 
     for i in 0..archive.len() {
-        let mut path = String::from(dest);
+        let mut path = dest.path;
         let mut file = archive.by_index(i)?;        
             match file.enclosed_name() {
                 Some(pth) => pth.to_owned(),
