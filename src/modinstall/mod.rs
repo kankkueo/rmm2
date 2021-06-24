@@ -3,7 +3,7 @@ use std::io;
 //use xmltree::Element;
 
 pub mod xml;
-mod paths;
+pub mod paths;
 use crate::files;
 
 struct FomodFile {
@@ -64,34 +64,34 @@ fn fix_case(src: &str) -> String {
     dest
 }
 
-fn fix_case_path(src: &str) -> String {
+fn fix_case_path(src: paths::Path) -> paths::Path {
     let mut dest = String::new();
-    for i in src.split('/') {
-        dest.push_str(&fix_case(i));
+    for i in src.items().iter() {
         dest.push('/');
+        dest.push_str(&fix_case(i));
     }
-    dest.pop();
-    dest
+    paths::Path::from(&dest)
 }
 
-pub fn cap_dir(src: paths::Path) {
-    let contents: Vec<String> = files::read_datadir(&src.path);
+pub fn cap_dir(src: &paths::Path) {
+    let contents: Vec<String> = files::read_datadir(src.as_str());
     for i in 0..contents.len() {
 
         let dir = src.clone().push(&contents[i]);
         let dir_c = src.clone().push(&fix_case(&contents[i]));
 
         if dir.is_dir() {
-            fs::rename(&dir.path, &dir_c.path).unwrap();
-            cap_dir(dir_c);
+            fs::rename(dir.as_str(), dir_c.as_str()).unwrap();
+            cap_dir(&dir_c);
         }
     }
 }
 
-fn unpack(src: paths::Path, dest: paths::Path) -> io::Result<()> {
+fn unpack(src: &paths::Path, dest: &paths::Path) -> io::Result<()> {
 
-    let fname = std::path::Path::new(&src.path);
-    let file = fs::File::open(fname)?;
+    //let fname = std::path::Path::new(&src.path);
+    //let file = fs::File::open(fname)?;
+    let file = fs::File::open(src.as_str())?;
     let mut archive = zip::ZipArchive::new(&file)?;
 
     //testi
@@ -99,7 +99,7 @@ fn unpack(src: paths::Path, dest: paths::Path) -> io::Result<()> {
     let mut file_size: f32 = 0.0;
 
     for i in 0..archive.len() {
-        let mut path = dest.path;
+        let mut path = dest.as_str().clone();
         let mut file = archive.by_index(i)?;        
             match file.enclosed_name() {
                 Some(pth) => pth.to_owned(),
@@ -122,16 +122,17 @@ fn unpack(src: paths::Path, dest: paths::Path) -> io::Result<()> {
     Ok(())
 }
 
-fn check_if_fomod(src: &str) -> bool {
-    let fname = std::path::Path::new(src);
-    let file = fs::File::open(fname).unwrap();
-    let mut archive = zip::ZipArchive::new(&file).unwrap();
-
-    for i in 0..archive.len() {
-        let file = archive.by_index(i).unwrap();        
-        if (file.name().contains("Fomod") || file.name().contains("fomod")) && file.name().contains("ModuleConfig") {
-            return true;
-        }
+fn check_if_fomod(src: &paths::Path) -> bool {
+    let contents = files::read_datadir(src.as_str());
+    for i in contents.iter() {
+        if i.contains("Fomod") || i.contains("fomod") {
+            let contents = files::read_datadir(src.clone().push(i).as_str());
+            for k in contents.iter() {
+                if k.contains("ModuleConfig") {
+                    return true;
+                }
+            }
+        }   
     }
     false
 }
@@ -168,8 +169,8 @@ fn read_fomod_plugin(element: xmltree::Element) -> FomodPlugin {
             for j in 0..files_e.len() {
                 files.push(
                     FomodFile {
-                        source: xml::turn_slashes(files_e[j].attributes["source"].clone()),
-                        destination: xml::turn_slashes(files_e[j].attributes["destination"].clone()),
+                        source: paths::Path::from(&files_e[j].attributes["source"].clone()),
+                        destination: fix_case_path(paths::Path::from(&files_e[j].attributes["destination"].clone())),
                         ftype: files_e[j].name.clone(),
                     }
                 );
@@ -204,39 +205,34 @@ fn read_install_step(element: xmltree::Element) -> Vec<FomodGroup> {
     groups_v
 }
 
-fn move_files_all(src: &str, dest: &str) -> io::Result<()> {
-    let contents: Vec<String> = files::read_datadir(src);
+fn move_files_all(src: &paths::Path, dest: &paths::Path) -> io::Result<()> {
+    let contents: Vec<String> = files::read_datadir(src.as_str());
     for i in 0..contents.len() {
 
-        let mut src_p = format!("{}/{}", src, contents[i]);
-        let mut dest_p = format!("{}/{}", dest, contents[i]);
+        let src_p = src.clone().push(&contents[i]);
+        let dest_p = dest.clone().push(&contents[i]);
 
-        if src.ends_with('/') {
-            src_p = format!("{}{}", src, contents[i]);
-            dest_p = format!("{}{}", dest, contents[i]);
-        }
-
-        if check_if_dir(&src_p) {
-            fs::create_dir_all(&dest_p)?;
+        if src_p.is_dir() {
+            fs::create_dir_all(&dest_p.as_str())?;
             move_files_all(&src_p, &dest_p)?;
         }
         else {
-            fs::rename(src_p, dest_p)?;
+            fs::rename(src_p.as_str(), dest_p.as_str())?;
         }
     }
     Ok(())
 }
 
-fn install_fomod_files(plugin: &FomodPlugin, src: &str, dest: &str) -> io::Result<()> {
+fn install_fomod_files(plugin: &FomodPlugin, src: &paths::Path, dest: &paths::Path) -> io::Result<()> {
     for i in 0..plugin.files.len() {
-        let src_p = format!("{}{}", src, plugin.files[i].source);
-        let dest_p = format!("{}{}", dest, fix_case_path(&plugin.files[i].destination));
+        let src_p = src.clone().push_p(plugin.files[i].source.clone());
+        let dest_p = dest.clone().push_p(plugin.files[i].destination.clone());
 
         if plugin.files[i].ftype == "file" {
-            if !check_if_dir(&dest_p) {
-                fs::create_dir_all(get_dir(&dest_p))?;
+            if !dest_p.is_dir() {
+                fs::create_dir_all(dest_p.previous().as_str())?;
             }
-            fs::rename(&src_p, &dest_p)?;
+            fs::rename(src_p.as_str(), dest_p.as_str())?;
         }
         else if plugin.files[i].ftype == "folder" {
             move_files_all(&src_p, &dest_p)?;
@@ -262,13 +258,11 @@ fn print_plugins(group: &FomodGroup) {
     }
 }
 
-fn install_fomod(src: &str, dest: &str) -> io::Result<()> {
-    let src_p = format!("{}{}", get_dir(src), "temp/");
-    unpack(src, &src_p)?;
-    let src_p = step_dir(&src_p);
-    let installtxt = format!("{}{}", src_p, "Fomod/ModuleConfig.xml");
+fn install_fomod(src: paths::Path, dest: paths::Path) -> io::Result<()> {
+    let src_p = src.clone().next();
+    let installtxt = src.clone().push("Fomod/ModuleConfig.xml");
 
-    let i_steps = xml::get_children_r(xml::read_xml_file(&installtxt), "installStep");
+    let i_steps = xml::get_children_r(xml::read_xml_file(installtxt.as_str()), "installStep");
 
     for i in 0..i_steps.len() {
         let groups = read_install_step(i_steps[i].clone());
@@ -277,7 +271,7 @@ fn install_fomod(src: &str, dest: &str) -> io::Result<()> {
                 println!("Select one");
                 print_plugins(&groups[j]);
                 let sclt = selection()[0];
-                install_fomod_files(&groups[j].plugins[sclt], &src_p, dest)?;
+                install_fomod_files(&groups[j].plugins[sclt], &src_p, &dest)?;
             }
             else if groups[j].gtype == "SelectAny" || groups[j].gtype == "selectany" {
                 println!("Select any");
@@ -285,7 +279,7 @@ fn install_fomod(src: &str, dest: &str) -> io::Result<()> {
                 let sclt = selection();
 
                 for k in 0..sclt.len() {
-                    install_fomod_files(&groups[j].plugins[sclt[k]], &src_p, dest)?;
+                    install_fomod_files(&groups[j].plugins[sclt[k]], &src_p, &dest)?;
                 }
 
             }
@@ -295,41 +289,64 @@ fn install_fomod(src: &str, dest: &str) -> io::Result<()> {
                 let sclt = selection();
 
                 for k in 0..sclt.len() {
-                    install_fomod_files(&groups[j].plugins[sclt[k]], &src_p, dest)?;
+                    install_fomod_files(&groups[j].plugins[sclt[k]], &src_p, &dest)?;
                 }
 
             }
             else {
                 for k in 0..groups[j].plugins.len() {
-                    install_fomod_files(&groups[j].plugins[k], &src_p, dest)?;
+                    install_fomod_files(&groups[j].plugins[k], &src_p, &dest)?;
                 }
             }
         }
     }
 
-    fs::remove_dir_all(src_p)?;
+    fs::remove_dir_all(src_p.as_str())?;
     Ok(())
 
 }
 
-fn install_non_fomod(src: &str, dest: &str) -> io::Result<()> {
-    let src_p = format!("{}{}", get_dir(src), "temp/");
-    unpack(src, &src_p)?;
-    let src_p = step_dir(&src_p);
-    cap_dir(&src_p);
-    move_files_all(&src_p, dest)?;
-    fs::remove_dir_all(src_p)?;
+fn install_non_fomod(src: paths::Path, dest: paths::Path) -> io::Result<()> {
+    let src = src.clone().next();
+    cap_dir(&src);
+    move_files_all(&src, &dest)?;
     Ok(())
 }
 
 pub fn install_mod(src: &str, dest: &str) -> io::Result<()> {
-    if check_if_fomod(src) {
-        println!("joo");
-        install_fomod(src, dest)?;
+    let src = paths::Path::from(src);
+    let dest = paths::Path::from(dest);
+    let mut src_p = src.clone();
+
+    if !src.is_dir() {
+        src_p = src.previous().push("temp/");
+        match unpack(&src, &src_p) {
+            Err(_e) => {
+                println!("Error extracting. Please extract manually and use the installer.");
+                return Err(_e);
+            }
+            Ok(_x) => println!("Installing"),
+        }
+    }
+
+    println!("{}",src_p.as_str());
+    if check_if_fomod(&src_p) {
+        match install_fomod(src_p, dest) {
+            Err(_e) => {
+                println!("Installation failed. Please install manually");
+                return Err(_e);
+            }
+            Ok(_x) => println!("Installed successfully"),
+        }
     }
     else {
-        println!("ei");
-        install_non_fomod(src, dest)?;
+        match install_non_fomod(src_p, dest) {
+            Err(_e) => {
+                println!("Installation failed. Please install manually");
+                return Err(_e);
+            }
+            Ok(_x) => println!("Installed successfully"),
+        }       
     }
     Ok(())
 }

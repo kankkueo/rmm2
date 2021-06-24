@@ -3,43 +3,38 @@ use crate::files::read_datadir;
 
 #[derive(Clone)]
 pub struct Path {
-    pub path: String,
-    size: usize,
+    path: String,
 }
 
 impl Path {
     pub fn from(src: &str) -> Path {
-        let mut cnt = 0;
         let mut s = String::new();
 
         for i in src.chars() {
-            if i == '/' || i == '\\' {
+            if  i == '\\' {
                 s.push('/');
-                cnt += 1;
             }
             else {
                 s.push(i);
             }
         }
 
-        if s.ends_with('/') { cnt -= 1; }
-        
-        Path {
-            path: s,
-            size: cnt,
-        }
+       Path {path: s} 
     }
 
     pub fn push(&mut self, t: &str) -> Path {
         if self.path.ends_with('/') {
-            self.path.push_str(t);
+            self.path.push_str(&r_first(t));
         }
         else {
             self.path.push('/');
-            self.path.push_str(t);
+            self.path.push_str(&r_first(t));
         }
-        self.size += 1;
         self.clone()
+    }
+
+    pub fn push_p(&mut self, t: Path) -> Path {
+        self.push(&t.path).clone()
     }
 
     pub fn is_dir(&self) -> bool {
@@ -50,20 +45,14 @@ impl Path {
     }
 
     pub fn previous(&self) -> Path {
-        let mut cnt = 0;
-        let mut s = String::new();
-
-        for i in self.path.split('/') {
-            if cnt == self.size-1 { break; }
+        let items = self.items();
+        let mut s = String::from("/");
+        for i in 0..items.len() - 1 {
+            s.push_str(&items[i]);
             s.push('/');
-            s.push_str(i);
-            cnt += 1;
         }
 
-        Path {
-            path: s,
-            size: cnt,
-        }
+        Path {path: s}
     }
 
     pub fn next(&mut self) -> Path {
@@ -75,5 +64,41 @@ impl Path {
         }
         self.clone()
     }
+
+    pub fn items(&self) -> Vec<String> {
+        let mut v: Vec<String> = Vec::new();
+        for i in self.path.split('/') {
+            if i.len() > 0 {
+                v.push(i.to_string());
+            }
+        }
+        v
+    }
+
+    pub fn len(&self) -> usize {
+        let mut n = 0;
+        for i in self.path.split('/') {
+            if i.len() > 0 {
+                n += 1;
+            }
+        }
+        n
+    }
+
+    pub fn as_str(&self) -> &String {
+        &self.path
+    }
+}
+    
+fn r_first(src: &str) -> String {
+    let mut c = 0;
+    let mut s = String::new();
+    for i in src.chars() {
+        if i != '/' || c != 0 {
+            s.push(i);
+        }
+        c += 1;
+    }
+    s
 }
 

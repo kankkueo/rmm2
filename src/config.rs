@@ -57,7 +57,7 @@ fn fix_data_path(path: &str) -> String {
             buff.push('/');
         }
     }
-    cap_dir(&buff);
+    //cap_dir(&buff);
     buff
 }
 
