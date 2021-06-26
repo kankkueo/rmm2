@@ -11,6 +11,8 @@ use tui::style::{Color, Modifier, Style};
 use crate::loadorder;
 use crate::files::write_loadorder;
 use crate::config::Gamepath;
+use crate::paths::Path;
+
 pub mod events;
 pub mod installer;
 
@@ -139,7 +141,7 @@ pub fn mode_selection_menu(events: &events::Events) -> io::Result<usize> {
     }
 }
 
-pub fn plugin_menu(plugins: &mut Vec<loadorder::Plugin>, mods: &mut Vec<String>,paths: Gamepath, mode: usize, events: &events::Events) -> io::Result<Option<String>> {
+pub fn plugin_menu(plugins: &mut Vec<loadorder::Plugin>, mods: &mut Vec<String>,paths: Gamepath, mode: usize, events: &events::Events) -> io::Result<Option<Path>> {
     let stdout = io::stdout().into_raw_mode()?;
     //let stdout = MouseTerminal::from(stdout);
     let stdout = AlternateScreen::from(stdout);
@@ -250,7 +252,7 @@ pub fn plugin_menu(plugins: &mut Vec<loadorder::Plugin>, mods: &mut Vec<String>,
                             menu[sclt].update(loadorder::to_strvec(&plugins));
                         }
                         else {
-                            let src_p = format!("{}{}", paths.mods, mods[x]);
+                            let src_p = paths.mods.clone().push(&mods[x]);
                             return Ok(Some(src_p));
                         }
                     }

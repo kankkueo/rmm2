@@ -1,11 +1,12 @@
 use std::fs;
 use crate::loadorder::Plugin;
+use crate::paths::Path;
 
 
-pub fn read_datadir(path: &str) -> Vec<String> {
+pub fn read_datadir(path: &Path) -> Vec<String> {
     let mut data = String::new();
     let mut data_v: Vec<String> = Vec::new();
-    let dir = fs::read_dir(path).expect("Could not read");
+    let dir = fs::read_dir(path.as_str()).expect("Could not read");
     for i in dir {
         let i = i.unwrap();
         data.push_str(&format!("{:?}",i.file_name()));
@@ -18,7 +19,7 @@ pub fn read_datadir(path: &str) -> Vec<String> {
     data_v
 }
 
-fn get_installed_mods(path: &str) -> Vec<String> {
+fn get_installed_mods(path: &Path) -> Vec<String> {
     let mut plugins: Vec<String> = Vec::new();
     let data: Vec<String> = read_datadir(path);
 
@@ -40,9 +41,9 @@ fn ignore_asterix(src: &str) -> String {
     buf 
 }
 
-pub fn get_active_mods(path_d: &str, path_p: &str, mode: usize) -> Vec<Plugin> {
+pub fn get_active_mods(path_d: &Path, path_p: &Path, mode: usize) -> Vec<Plugin> {
     let mut plugins: Vec<Plugin> = Vec::new();
-    let buffer = fs::read_to_string(path_p).expect("Could not read file");
+    let buffer = fs::read_to_string(path_p.as_str()).expect("Could not read file");
 
     for i in buffer.split('\n') {
         if i != "" && i != " " && i != "\n" {
@@ -72,7 +73,7 @@ pub fn get_active_mods(path_d: &str, path_p: &str, mode: usize) -> Vec<Plugin> {
     plugins
 }
 
-pub fn write_loadorder(plugins: Vec<Plugin>, path: &str, mode: usize) {
+pub fn write_loadorder(plugins: Vec<Plugin>, path: &Path, mode: usize) {
     let mut buffer = String::new();
     for i in 0..plugins.len() {
         if mode == 1 || mode == 3 {
@@ -89,6 +90,6 @@ pub fn write_loadorder(plugins: Vec<Plugin>, path: &str, mode: usize) {
             }
         }
     }
-    fs::write(path, buffer).unwrap();
+    fs::write(path.as_str(), buffer).unwrap();
 }
 

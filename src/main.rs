@@ -4,6 +4,7 @@ mod ui;
 mod loadorder;
 mod config;
 mod files;
+mod paths;
 use std::io;
 
 
@@ -13,16 +14,10 @@ fn main() -> io::Result<()> {
     let config = config::read_config(mode);
     let mut plugins = files::get_active_mods(&config.data, &config.plugins, mode);
     let mut mods = files::read_datadir(&config.mods);
+
     match ui::plugin_menu(&mut plugins, &mut mods, config.clone(), mode, &events).unwrap() {
-        Some(x) => match modinstall::install_mod(&x, &config.data) {
-            Ok(_y) => println!("Done"),
-            _default => println!("Error installing mod. Please install manually"),
-        }
-        None => println!("exiting"),
+        Some(x) => modinstall::install_mod(x, config.data),
+        None => Ok(()),
     }
-
-
-
-    Ok(()) 
 }
 

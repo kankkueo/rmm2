@@ -7,6 +7,11 @@ pub struct Path {
 }
 
 impl Path {
+
+    pub fn new() -> Path {
+        Path {path: String::new()}
+    }
+
     pub fn from(src: &str) -> Path {
         let mut s = String::new();
 
@@ -57,7 +62,7 @@ impl Path {
 
     pub fn next(&mut self) -> Path {
         if self.is_dir() {
-            let contents = read_datadir(&self.path);
+            let contents = read_datadir(&self);
             if contents.len() == 1 {
                 self.push(&contents[0]);
             }
