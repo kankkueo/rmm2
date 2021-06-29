@@ -73,18 +73,19 @@ fn fix_case_path(src: Path) -> Path {
     Path::from(&dest)
 }
 
-pub fn cap_dir(src: &Path) {
-    let contents: Vec<String> = files::read_datadir(src);
+pub fn cap_dir(src: &Path) -> io::Result<()> {
+    let contents: Vec<String> = files::read_datadir(src)?;
     for i in 0..contents.len() {
 
         let dir = src.clone().push(&contents[i]);
         let dir_c = src.clone().push(&fix_case(&contents[i]));
 
         if dir.is_dir() {
-            fs::rename(dir.as_str(), dir_c.as_str()).unwrap();
-            cap_dir(&dir_c);
+            fs::rename(dir.as_str(), dir_c.as_str())?;
+            cap_dir(&dir_c)?;
         }
     }
+    Ok(())
 }
 
 fn unpack(src: &Path, dest: &Path) -> io::Result<()> {
@@ -121,10 +122,10 @@ fn unpack(src: &Path, dest: &Path) -> io::Result<()> {
 }
 
 fn check_if_fomod(src: &Path) -> bool {
-    let contents = files::read_datadir(src);
+    let contents = files::read_datadir(src).unwrap();
     for i in contents.iter() {
         if i.contains("Fomod") || i.contains("fomod") {
-            let contents = files::read_datadir(&src.clone().push(i));
+            let contents = files::read_datadir(&src.clone().push(i)).unwrap();
             for k in contents.iter() {
                 if k.contains("ModuleConfig") {
                     return true;
@@ -204,7 +205,7 @@ fn read_install_step(element: xmltree::Element) -> Vec<FomodGroup> {
 }
 
 fn move_files_all(src: &Path, dest: &Path) -> io::Result<()> {
-    let contents: Vec<String> = files::read_datadir(src);
+    let contents: Vec<String> = files::read_datadir(src).unwrap();
     for i in 0..contents.len() {
 
         let src_p = src.clone().push(&contents[i]);

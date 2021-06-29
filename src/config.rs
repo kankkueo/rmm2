@@ -4,6 +4,7 @@ use std::env;
 use std::io;
 use crate::modinstall::cap_dir;
 use crate::paths::Path;
+use crate::ui::fileexplorer;
 
 #[derive(Deserialize, Serialize)]
 struct GamepathsT {
@@ -57,19 +58,26 @@ fn create_conf_file(conf: &str) -> io::Result<()> {
 
 fn write_conf_file(config: &GamepathsT) -> io::Result<()> {
     let conf = format!("{}{}",env::var("HOME").unwrap(), "/.config/rmm2/config");
-    let content = format!("[Gamepaths]\n\n{}", toml::to_string(&config).unwrap());
+    //let content = format!("[Gamepaths]\n\n{}", toml::to_string(&config).unwrap());
+    let content = toml::to_string(config).unwrap();
     fs::write(conf, content)
 }
 
 fn create_game_conf(mode: usize) -> Gamepath {
-    let mut d = String::new();
-    println!("Enter the path to your game's data directory (absolute path)");
-    io::stdin().read_line(&mut d).unwrap();
+    let p = fileexplorer("Navigate to your game's data directory").unwrap();
+
+    match cap_dir(&p) {
+        Ok(_x) => {},
+        Err(_e) => {
+            println!("Invalid path!");
+            create_game_conf(mode);
+        }
+    }
 
     Gamepath {
-        data: fix_data_path(Path::from(&d)),
-        plugins: get_plugin_path(Path::from(&d), mode),
-        mods: get_mod_path(Path::from(&d)),
+        data: p.clone(),
+        plugins: get_plugin_path(p.clone(), mode),
+        mods: get_mod_path(p.clone()),
     }
 }
 
@@ -80,11 +88,13 @@ fn fix_data_path(path: Path) -> Path {
             buff.push("Data/");
             break;
         }
+        else if i.starts_with('$') {
+            buff.push(&envvar(i));
+        }
         else {
             buff.push(&i);
         }
     }
-    cap_dir(&buff);
     buff
 }
 
@@ -94,6 +104,9 @@ fn get_mod_path(path: Path) -> Path {
         if (i == "Data" || i == "data") && buff.as_str().contains("common") {
             buff.push("Mods/");
             break;
+        }
+        else if i.starts_with('$') {
+            buff.push(&envvar(i));
         }
         else {
             buff.push(&i);
@@ -115,8 +128,8 @@ fn get_plugin_path(path: Path, mode: usize) -> Path {
     let mut buff = Path::new();
     let paths = vec![
         "/steamapps/compatdata/489830/pfx/drive_c/users/steamuser/Local Settings/Application Data/Skyrim Special Edition/plugins.txt",
-        "/steamapps/compatdata/489830/pfx/drive_c/users/steamuser/Local Settings/Application Data/Skyrim Special Edition/plugins.txt",
-        "/steamapps/compatdata/489830/pfx/drive_c/users/steamuser/Local Settings/Application Data/Skyrim Special Edition/plugins.txt",
+        "/steamapps/compatdata/489830/pfx/drive_c/users/steamuser/Local Settings/Application Data/Skyrim/plugins.txt",
+        "/steamapps/compatdata/489830/pfx/drive_c/users/steamuser/Local Settings/Application Data/Oblivion/plugins.txt",
         "/steamapps/compatdata/489830/pfx/drive_c/users/steamuser/Local Settings/Application Data/Skyrim Special Edition/plugins.txt",
         "/steamapps/compatdata/489830/pfx/drive_c/users/steamuser/Local Settings/Application Data/Skyrim Special Edition/plugins.txt",
         "/steamapps/compatdata/489830/pfx/drive_c/users/steamuser/Local Settings/Application Data/Skyrim Special Edition/plugins.txt",
@@ -124,20 +137,19 @@ fn get_plugin_path(path: Path, mode: usize) -> Path {
 
     for i in path.items() {
         if i == "steamapps" {
-            buff.push(paths[mode]);
+            buff.push(paths[mode - 1]);
             create_plugin_file(&buff).unwrap();
             return buff;
+        }
+        else if i.starts_with('$') {
+            buff.push(&envvar(i));
         }
         else {
             buff.push(&i);
         }
     }
 
-    println!("Could not find plugins file. Please enter the path manually (absolute path)");
-
-    let mut buf2 = String::new();
-    io::stdin().read_line(&mut buf2).unwrap();
-    let buf2 = Path::from(&buf2);
+    let buf2 = fileexplorer("Could not find plugins file. Please enter the path manually").unwrap();
 
     match create_plugin_file(&buf2) {
         Ok(()) => buf2,
@@ -162,7 +174,7 @@ fn read_toml(paths: GamepathsT, mode: usize) -> Gamepath {
         2 => match paths.skyrim {
             Some(x) => x.to_gp(),
             None => {
-                paths.skyrim = Some(create_game_conf(1).to_gpt());
+                paths.skyrim = Some(create_game_conf(2).to_gpt());
                 write_conf_file(&paths).unwrap();
                 read_toml(paths, mode)
             }
@@ -170,7 +182,7 @@ fn read_toml(paths: GamepathsT, mode: usize) -> Gamepath {
         3 => match paths.oblivion {
             Some(x) => x.to_gp(),
             None => {
-                paths.oblivion = Some(create_game_conf(1).to_gpt());
+                paths.oblivion = Some(create_game_conf(3).to_gpt());
                 write_conf_file(&paths).unwrap();
                 read_toml(paths, mode)
             }
@@ -178,7 +190,7 @@ fn read_toml(paths: GamepathsT, mode: usize) -> Gamepath {
         4 => match paths.fallout4 {
             Some(x) => x.to_gp(),
             None => {
-                paths.fallout4 = Some(create_game_conf(1).to_gpt());
+                paths.fallout4 = Some(create_game_conf(4).to_gpt());
                 write_conf_file(&paths).unwrap();
                 read_toml(paths, mode)
             }
@@ -186,7 +198,7 @@ fn read_toml(paths: GamepathsT, mode: usize) -> Gamepath {
         5 => match paths.falloutnv {
             Some(x) => x.to_gp(),
             None => {
-                paths.falloutnv = Some(create_game_conf(1).to_gpt());
+                paths.falloutnv = Some(create_game_conf(5).to_gpt());
                 write_conf_file(&paths).unwrap();
                 read_toml(paths, mode)
             }
@@ -194,7 +206,7 @@ fn read_toml(paths: GamepathsT, mode: usize) -> Gamepath {
         6 => match paths.fallout3 {
             Some(x) => x.to_gp(),
             None => {
-                paths.fallout3 = Some(create_game_conf(1).to_gpt());
+                paths.fallout3 = Some(create_game_conf(6).to_gpt());
                 write_conf_file(&paths).unwrap();
                 read_toml(paths, mode)
             }
@@ -204,7 +216,6 @@ fn read_toml(paths: GamepathsT, mode: usize) -> Gamepath {
 }
 
 pub fn read_config(mode: usize) -> Gamepath {
-    //let conf = format!("{}{}",env::var("HOME").unwrap(), "/.config/rmm2/config");
     let conf = Path::from(&env::var("HOME").unwrap()).push(".config/rmm2/config");
 
     match fs::read_to_string(&conf.as_str()) {
@@ -216,6 +227,16 @@ pub fn read_config(mode: usize) -> Gamepath {
     }
 }
 
-
-
+fn envvar(src: String) -> String {
+    let mut v = String::new();
+    for i in src.chars() {
+        if i != '$' {
+            v.push(i);
+        }
+    }
+    match env::var(v) {
+        Ok(x) => x,
+        Err(_e) => src,
+    }
+}
 
