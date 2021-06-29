@@ -60,6 +60,19 @@ impl Events {
     pub fn next(&self) -> Result<Event<Key>, mpsc::RecvError> {
         self.rx.recv()
     }
+
+    pub fn stop(&mut self) {
+        thread::park();
+    }
 }
 
-
+pub fn keyin() -> Key {
+    let stdin = io::stdin();
+    for evt in stdin.keys() {
+        match evt {
+            Ok(x) => {return x;},
+            Err(_e) => {return Key::Null;},
+        }
+    }
+    Key::Null
+}

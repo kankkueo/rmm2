@@ -9,12 +9,11 @@ use tui::layout::{Layout, Constraint, Direction};
 use tui::style::{Color, Modifier, Style};
 
 use crate::loadorder;
-use crate::files::write_loadorder;
+use crate::files::{write_loadorder, read_datadir};
 use crate::config::Gamepath;
 use crate::paths::Path;
 
 pub mod events;
-pub mod installer;
 
 struct StateList<'a> {
     items: Vec<ListItem<'a>>,
@@ -73,7 +72,7 @@ impl<'a> StateList<'a> {
     }
 }
 
-pub fn mode_selection_menu(events: &events::Events) -> io::Result<usize> {
+pub fn mode_selection_menu() -> io::Result<usize> {
 
     let stdout = io::stdout().into_raw_mode()?;
     let stdout = AlternateScreen::from(stdout);
@@ -124,29 +123,25 @@ pub fn mode_selection_menu(events: &events::Events) -> io::Result<usize> {
 
         })?;
 
-        match events.next().unwrap() {
-            events::Event::Input(key) => match key {
-                Key::Up => menu.select_prev(),
-                Key::Char('k') => menu.select_prev(),
-                Key::Down => menu.select_next(),
-                Key::Char('j') => menu.select_next(),
-                Key::Char('\n') => match menu.state.selected() {
-                    Some(x) => {return Ok(x + 1);},
-                    None => continue,
-                }
-                _default => continue,
+        match events::keyin() {
+            Key::Up | Key::Char('k') => menu.select_prev(),
+            Key::Down | Key::Char('j') => menu.select_next(),
+            Key::Char('\n') => match menu.state.selected() {
+                Some(x) => {return Ok(x + 1);},
+                None => continue,
             }
-            events::Event::Tick => continue,
+            _default => continue,
         }
     }
 }
 
-pub fn plugin_menu(plugins: &mut Vec<loadorder::Plugin>, mods: &mut Vec<String>,paths: Gamepath, mode: usize, events: &events::Events) -> io::Result<Option<Path>> {
+pub fn plugin_menu(plugins: &mut Vec<loadorder::Plugin>, mods: &mut Vec<String>,paths: Gamepath, mode: usize) -> io::Result<Option<Path>> {
     let stdout = io::stdout().into_raw_mode()?;
     //let stdout = MouseTerminal::from(stdout);
     let stdout = AlternateScreen::from(stdout);
     let backend = TermionBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
+    let events = events::Events::new();
     let mut menu: Vec<StateList> = Vec::new();
     menu.push(StateList::from(loadorder::to_strvec(&plugins)));
     menu.push(StateList::from(mods.to_vec()));
@@ -217,34 +212,20 @@ pub fn plugin_menu(plugins: &mut Vec<loadorder::Plugin>, mods: &mut Vec<String>,
                     write_loadorder(w_plugs, &paths.plugins, mode);
                     break;
                 }
-                Key::Char('l') => {
+                Key::Right | Key::Char('l') => {
                     menu[sclt].unselect();
                     if sclt == 0 { sclt = 1; }
                     else { sclt = 0; }
                     menu[sclt].select_next();
                 }
-                Key::Right => {
+                Key::Left | Key::Char('h') => {
                     menu[sclt].unselect();
                     if sclt == 0 { sclt = 1; }
                     else { sclt = 0; }
                     menu[sclt].select_next();
                 }
-                Key::Char('h') => {
-                    menu[sclt].unselect();
-                    if sclt == 0 { sclt = 1; }
-                    else { sclt = 0; }
-                    menu[sclt].select_next();
-                }
-                Key::Left => {
-                    menu[sclt].unselect();
-                    if sclt == 0 { sclt = 1; }
-                    else { sclt = 0; }
-                    menu[sclt].select_next();
-                }
-                Key::Up => menu[sclt].select_prev(),
-                Key::Char('k') => menu[sclt].select_prev(),
-                Key::Down => menu[sclt].select_next(),
-                Key::Char('j') => menu[sclt].select_next(),
+                Key::Up | Key::Char('k') => menu[sclt].select_prev(),
+                Key::Down | Key::Char('j') => menu[sclt].select_next(),
                 Key::Char('\n') => match menu[sclt].state.selected() {
                     Some(x) => {
                         if sclt == 0 {
@@ -287,4 +268,77 @@ pub fn plugin_menu(plugins: &mut Vec<loadorder::Plugin>, mods: &mut Vec<String>,
 
 }  
 
+pub fn fileexplorer(message: &str) -> io::Result<Path> {
+    let stdout = io::stdout().into_raw_mode()?;
+    let stdout = AlternateScreen::from(stdout);
+    let backend = TermionBackend::new(stdout);
+    let mut terminal = Terminal::new(backend)?;
+    let mut path = Path::from("/");
+    let mut items = read_datadir(&path)?;
+    let mut menu = StateList::from(items.clone());
+    
+    loop {
 
+        terminal.draw(|f| {
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .margin(1)
+                .constraints([
+                    Constraint::Percentage(90),
+                    Constraint::Percentage(10),
+    
+                ].as_ref())
+                .split(f.size());
+    
+            let list = List::new(menu.items.clone())
+                .block(
+                    Block::default()
+                        .title(message)
+                        .borders(Borders::ALL)
+                        .border_style(
+                            Style::default()
+                                .fg(Color::Rgb(255, 255, 255))
+                        )
+                )
+                .style(
+                    Style::default()
+                        .fg(Color::Rgb(0, 255, 155))
+                )
+                .highlight_style(
+                    Style::default()
+                        .fg(Color::Rgb(255, 0, 0))
+                        .add_modifier(Modifier::BOLD)
+                );
+
+            f.render_stateful_widget(list, chunks[0], &mut menu.state);
+
+        })?;
+
+        match events::keyin() {
+            Key::Up | Key::Char('k') => menu.select_prev(),
+            Key::Down | Key::Char('j') => menu.select_next(),
+            Key::Right | Key::Char('l') => match menu.state.selected() {
+                Some(x) => {
+                    path.push(&items[x]);
+                    items =  read_datadir(&path)?;            
+                    menu = StateList::from(items.clone());
+                }
+                None => continue,
+            }
+            Key::Left | Key::Char('h') => {
+                path = path.previous();
+                items =  read_datadir(&path)?;            
+                menu = StateList::from(items.clone());
+            }
+            Key::Char('\n') => match menu.state.selected() {
+                Some(x) => {
+                    path.push(&items[x]);
+                    return Ok(path);
+                }
+                None => continue,
+            }
+            _default => continue,
+
+        }
+    }
+}
