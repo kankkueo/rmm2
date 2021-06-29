@@ -62,7 +62,7 @@ impl Path {
 
     pub fn next(&mut self) -> Path {
         if self.is_dir() {
-            let contents = read_datadir(&self);
+            let contents = read_datadir(&self).unwrap();
             if contents.len() == 1 {
                 self.push(&contents[0]);
             }
@@ -99,7 +99,7 @@ fn r_first(src: &str) -> String {
     let mut c = 0;
     let mut s = String::new();
     for i in src.chars() {
-        if i != '/' || c != 0 {
+        if !(c == 0 && i == '/') {
             s.push(i);
         }
         c += 1;

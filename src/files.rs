@@ -1,12 +1,13 @@
 use std::fs;
 use crate::loadorder::Plugin;
 use crate::paths::Path;
+use std::io;
 
 
-pub fn read_datadir(path: &Path) -> Vec<String> {
+pub fn read_datadir(path: &Path) -> io::Result<Vec<String>> {
     let mut data = String::new();
     let mut data_v: Vec<String> = Vec::new();
-    let dir = fs::read_dir(path.as_str()).expect("Could not read");
+    let dir = fs::read_dir(path.as_str())?;
     for i in dir {
         let i = i.unwrap();
         data.push_str(&format!("{:?}",i.file_name()));
@@ -16,12 +17,12 @@ pub fn read_datadir(path: &Path) -> Vec<String> {
             data_v.push(String::from(i));
         }
     }
-    data_v
+    Ok(data_v)
 }
 
 fn get_installed_mods(path: &Path) -> Vec<String> {
     let mut plugins: Vec<String> = Vec::new();
-    let data: Vec<String> = read_datadir(path);
+    let data: Vec<String> = read_datadir(path).unwrap();
 
     for i in data.iter() {
         if i.contains(".esp") {
