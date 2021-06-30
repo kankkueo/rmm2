@@ -133,7 +133,7 @@ fn unpack(src: &Path, dest: &Path) -> io::Result<()> {
 fn check_if_fomod(src: &Path) -> bool {
     let contents = files::read_datadir(src).unwrap();
     for i in contents.iter() {
-        if i.contains("Fomod") || i.contains("fomod") {
+        if fix_case(i).contains("Fomod") {
             let contents = files::read_datadir(&src.clone().push(i)).unwrap();
             for k in contents.iter() {
                 if k.contains("ModuleConfig") {
