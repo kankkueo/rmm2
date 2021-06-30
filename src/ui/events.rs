@@ -66,13 +66,4 @@ impl Events {
     }
 }
 
-pub fn keyin() -> Key {
-    let stdin = io::stdin();
-    for evt in stdin.keys() {
-        match evt {
-            Ok(x) => {return x;},
-            Err(_e) => {return Key::Null;},
-        }
-    }
-    Key::Null
-}
+

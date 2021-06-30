@@ -5,6 +5,7 @@ use std::io;
 pub mod xml;
 use crate::files;
 use crate::paths::Path;
+use crate::ui::selection_menu;
 
 struct FomodFile {
     source: Path,
@@ -12,18 +13,18 @@ struct FomodFile {
     ftype: String,
 }
 
-struct FomodPlugin {
-    name: String,
-    image: String,
-    description: String,
+pub struct FomodPlugin {
+    pub name: String,
+    pub image: String,
+    pub description: String,
     files: Vec<FomodFile>,
     type_desc: String,
 }
 
-struct FomodGroup {
-    name: String,
-    gtype: String,
-    plugins: Vec<FomodPlugin>,
+pub struct FomodGroup {
+    pub name: String,
+    pub gtype: String,
+    pub plugins: Vec<FomodPlugin>,
 }
 
 impl FomodPlugin {
@@ -45,6 +46,14 @@ impl FomodGroup {
             gtype: String::new(),
             plugins: Vec::new(),
         }
+    }
+
+    pub fn plugins(&self) -> Vec<String> {
+        let mut v: Vec<String> = Vec::new(); 
+        for i in self.plugins.iter() {
+            v.push(i.name.clone());
+        }
+        v
     }
 }
 
@@ -266,6 +275,15 @@ fn install_fomod(src: Path, dest: Path) -> io::Result<()> {
     for i in 0..i_steps.len() {
         let groups = read_install_step(i_steps[i].clone());
         for j in 0..groups.len() {
+
+            let sclt = selection_menu(&groups[j]).unwrap();
+
+            for k in 0..sclt.len() {
+                install_fomod_files(&groups[j].plugins[sclt[k]], &src_p, &dest)?;
+            }
+
+
+            /*
             if groups[j].gtype == "SelectExactlyOne" || groups[j].gtype == "selectexactlyone" {
                 println!("Select one");
                 print_plugins(&groups[j]);
@@ -297,6 +315,7 @@ fn install_fomod(src: Path, dest: Path) -> io::Result<()> {
                     install_fomod_files(&groups[j].plugins[k], &src_p, &dest)?;
                 }
             }
+            */
         }
     }
 
