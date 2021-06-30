@@ -1,3 +1,4 @@
 etsi fomod kansio huolimatta casesta ja lataa module config
 fomodin asentaminen kaniorakenteen läpi esim. "Mods/mod1/mod1/*contents*"
 jatkuva ui
+poista kansio asentamisen jälkeen
