@@ -9,7 +9,7 @@ use tui::layout::{Layout, Constraint, Direction};
 use tui::style::{Color, Modifier, Style};
 
 use crate::loadorder;
-use crate::modinstall::FomodGroup;
+use crate::modinstall::utils::FomodGroup;
 use crate::files::{write_loadorder, read_datadir};
 use crate::config::Gamepath;
 use crate::paths::Path;
@@ -330,22 +330,21 @@ pub fn selection_menu(group: &FomodGroup) -> io::Result<Vec<usize>> {
 
         })?;
 
-    match utils::keyin() {
-        Key::Down | Key::Char('j') => menu.select_next(),
-        Key::Up | Key::Char('k') => menu.select_prev(),
-        Key::Char('\n') => match menu.state.selected() {
-            Some(x) => {
-                p_vec[x].activate();
-                menu.update(loadorder::to_strvec(&p_vec));
+        match utils::keyin() {
+            Key::Down | Key::Char('j') => menu.select_next(),
+            Key::Up | Key::Char('k') => menu.select_prev(),
+            Key::Char('\n') => match menu.state.selected() {
+                Some(x) => {
+                    p_vec[x].activate();
+                    menu.update(loadorder::to_strvec(&p_vec));
+                }
+                None => continue,
             }
-            None => continue,
+            Key::Right | Key::Char('l') => if loadorder::any_active(&p_vec) {
+                return Ok(loadorder::get_active(&p_vec));
+            }
+            _default => continue,
         }
-        Key::Right | Key::Char('l') => if loadorder::any_active(&p_vec) {
-            return Ok(loadorder::get_active(&p_vec));
-        }
-        _default => continue,
-    }
-
-
     }
 }
+

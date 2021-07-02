@@ -2,7 +2,7 @@ use std::fs;
 use serde_derive::{Deserialize, Serialize};
 use std::env;
 use std::io;
-use crate::modinstall::cap_dir;
+use crate::modinstall::utils::dir::{cap_dir, fix_case};
 use crate::paths::Path;
 use crate::ui::fileexplorer;
 
@@ -64,7 +64,11 @@ fn write_conf_file(config: &GamepathsT) -> io::Result<()> {
 }
 
 fn create_game_conf(mode: usize) -> Gamepath {
-    let p = fileexplorer("Navigate to your game's data directory").unwrap();
+    let mut p = fileexplorer("Navigate to your game's data directory").unwrap();
+    while !check_path(&p) { 
+        println!("Invalid path!");
+        p = fileexplorer("Navigate to your game's data directory").unwrap();
+    }
 
     match cap_dir(&p) {
         Ok(_x) => {},
@@ -76,45 +80,22 @@ fn create_game_conf(mode: usize) -> Gamepath {
 
     Gamepath {
         data: p.clone(),
-        plugins: get_plugin_path(p.clone(), mode),
-        mods: get_mod_path(p.clone()),
+        plugins: get_plugin_path(&p, mode),
+        mods: get_mod_path(&p),
     }
 }
 
-fn fix_data_path(path: Path) -> Path {
-    let mut buff = Path::new();
+fn check_path(path: &Path) -> bool {
     for i in path.items() {
-        if (i == "Data" || i == "data") && buff.as_str().contains("common") {
-            buff.push("Data/");
-            break;
-        }
-        else if i.starts_with('$') {
-            buff.push(&envvar(i));
-        }
-        else {
-            buff.push(&i);
+        if fix_case(&i).contains("data") {
+            return true;
         }
     }
-    buff
+    false
 }
 
-fn get_mod_path(path: Path) -> Path {
-    let mut buff = Path::new();
-    for i in path.items() {
-        if (i == "Data" || i == "data") && buff.as_str().contains("common") {
-            buff.push("Mods/");
-            break;
-        }
-        else if i.starts_with('$') {
-            buff.push(&envvar(i));
-        }
-        else {
-            buff.push(&i);
-        }
-        
-    }
-    fs::create_dir_all(&buff.as_str()).unwrap();
-    buff
+fn get_mod_path(path: &Path) -> Path {
+    path.previous().push("Mods")
 }
 
 fn create_plugin_file(path: &Path) -> io::Result<()> {
@@ -124,7 +105,7 @@ fn create_plugin_file(path: &Path) -> io::Result<()> {
     }
 }
 
-fn get_plugin_path(path: Path, mode: usize) -> Path {
+fn get_plugin_path(path: &Path, mode: usize) -> Path {
     let mut buff = Path::new();
     let paths = vec![
         "/steamapps/compatdata/489830/pfx/drive_c/users/steamuser/Local Settings/Application Data/Skyrim Special Edition/plugins.txt",

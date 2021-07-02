@@ -90,8 +90,8 @@ impl Path {
         n
     }
 
-    pub fn as_str(&self) -> &String {
-        &self.path
+    pub fn as_str(&self) -> String {
+        self.path.clone()
     }
 }
     

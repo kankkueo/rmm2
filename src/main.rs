@@ -16,12 +16,21 @@ fn main() -> io::Result<()> {
     let mut plugins = files::get_active_mods(&config.data, &config.plugins, mode);
     let mut mods = files::read_datadir(&config.mods).unwrap();
 
-    match ui::plugin_menu(&mut plugins, &mut mods, config.clone(), mode).unwrap() {
-        Some(x) => modinstall::install_mod(x, config.data),
-        None => Ok(()),
+    loop {
+
+        match ui::plugin_menu(&mut plugins, &mut mods, config.clone(), mode).unwrap() {
+            Some(x) => match modinstall::install_mod(x, config.data.clone()) {
+                Ok(_x) => {
+                    mods = files::read_datadir(&config.mods).unwrap();
+                },
+                Err(e) => eprintln!("{}", e),
+            }
+            None => break,
+        }
     }
 
-//    println!("{}", ui::fileexplorer().unwrap().as_str());
+
+    Ok(())
 
 }
 
