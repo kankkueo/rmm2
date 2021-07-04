@@ -95,7 +95,11 @@ fn check_path(path: &Path) -> bool {
 }
 
 fn get_mod_path(path: &Path) -> Path {
-    path.previous().push("Mods")
+    let modsp = path.previous().push("mods");
+    if !modsp.is_dir() {
+        fs::create_dir_all(modsp.as_str()).unwrap();
+    }
+    modsp
 }
 
 fn create_plugin_file(path: &Path) -> io::Result<()> {

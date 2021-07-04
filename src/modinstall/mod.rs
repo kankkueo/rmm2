@@ -76,27 +76,6 @@ fn install_fomod_files(plugin: &utils::FomodPlugin, src: &Path, dest: &Path) -> 
     Ok(())
 }
 
-
-/*
-fn selection() -> Vec<usize> {
-    let mut selected: Vec<usize> = Vec::new();
-    let mut input = String::new();
-    io::stdin().read_line(&mut input).unwrap();
-
-    for i in input.split_whitespace() {
-        selected.push(i.parse::<usize>().unwrap() - 1);
-    }
-    selected
-}
-
-fn print_plugins(group: &utils::FomodGroup) {
-    for i in 0..group.plugins.len() {
-        println!("{}) {}", i + 1, group.plugins[i].name);
-    }
-}
-*/
-
-
 fn install_fomod(src: &Path, dest: &Path) -> io::Result<()> {
     let src_p = src.clone().next();
 
@@ -108,7 +87,6 @@ fn install_fomod(src: &Path, dest: &Path) -> io::Result<()> {
             for k in 0..sclt.len() {
                 install_fomod_files(&groups[i].plugins[sclt[k]], &src_p, &dest)?;
             }
-
        }
 
     fs::remove_dir_all(src_p.as_str())?;

@@ -13,7 +13,7 @@ pub struct FomodFile {
 
 pub struct FomodPlugin {
     pub name: String,
-    pub image: String,
+    pub image: Path,
     pub description: String,
     pub type_desc: String,
     pub files: Vec<FomodFile>,
@@ -29,7 +29,7 @@ impl FomodPlugin {
     fn new() -> FomodPlugin {
         FomodPlugin {
             name: String::new(),
-            image: String::new(),
+            image: Path::new(),
             description: String::new(),
             type_desc: String::new(),
             files: Vec::new(),
@@ -86,7 +86,7 @@ fn read_plugins(group: xmltree::Element) -> Vec<FomodPlugin> {
         }
 
         match i.get_child("image") {
-            Some(x) => { plugin.image = x.attributes["path"].clone(); }
+            Some(x) => { plugin.image = Path::from(&x.attributes["path"]); }
             None => {}
         }
 

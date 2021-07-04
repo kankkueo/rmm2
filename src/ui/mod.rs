@@ -4,8 +4,8 @@ use termion::event::Key;
 use termion::screen::AlternateScreen;
 use tui::Terminal;
 use tui::backend::TermionBackend;
-use tui::widgets::{List, Block, Borders};
-use tui::layout::{Layout, Constraint, Direction};
+use tui::widgets::{List, Block, Borders, Paragraph};
+use tui::layout::{Layout, Constraint, Direction, Alignment};
 use tui::style::{Color, Modifier, Style};
 
 use crate::loadorder;
@@ -292,13 +292,14 @@ pub fn selection_menu(group: &FomodGroup) -> io::Result<Vec<usize>> {
 
     let mut p_vec = loadorder::to_plgvec(group.plugins());
     let mut menu = utils::StateList::from(loadorder::to_strvec(&p_vec));
+    let mut description = String::new();
 
     loop { 
 
         terminal.draw(|f| {
-            let chunks = Layout::default()
+            let chunks_left = Layout::default()
                 .direction(Direction::Horizontal)
-                .margin(1)
+                .margin(0)
                 .constraints([
                     Constraint::Percentage(50),
                     Constraint::Percentage(50),
@@ -306,6 +307,16 @@ pub fn selection_menu(group: &FomodGroup) -> io::Result<Vec<usize>> {
                 ].as_ref())
                 .split(f.size());
     
+            let chunks_right = Layout::default()
+                .direction(Direction::Vertical)
+                .margin(0)
+                .constraints([
+                    Constraint::Percentage(50),
+                    Constraint::Percentage(50),
+
+                ].as_ref())
+                .split(chunks_left[1]);
+
             let list = List::new(menu.items.clone())
                 .block(
                     Block::default()
@@ -326,7 +337,38 @@ pub fn selection_menu(group: &FomodGroup) -> io::Result<Vec<usize>> {
                         .add_modifier(Modifier::BOLD)
                 );
 
-            f.render_stateful_widget(list, chunks[0], &mut menu.state);
+            match menu.state.selected() {
+                Some(x) => {
+                    description = group.plugins[x].description.clone();
+                }
+                None => {}
+            }
+
+            let infobox = Paragraph::new(description.clone())
+                .block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .border_style(
+                            Style::default()
+                                .fg(Color::Rgb(255, 255, 255))
+                        )
+                )
+                .style(
+                    Style::default()
+                        .fg(Color::Rgb(255, 255, 255))
+                )
+                .alignment(Alignment::Left);
+
+            let imagebox = Block::default()
+                        .borders(Borders::ALL)
+                        .border_style(
+                            Style::default()
+                                .fg(Color::Rgb(255, 255, 255))
+                        );
+
+            f.render_stateful_widget(list, chunks_left[0], &mut menu.state);
+            f.render_widget(infobox, chunks_right[0]);
+            f.render_widget(imagebox, chunks_right[1]);
 
         })?;
 
