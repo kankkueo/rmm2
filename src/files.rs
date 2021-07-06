@@ -25,7 +25,7 @@ fn get_installed_mods(path: &Path) -> Vec<String> {
     let data: Vec<String> = read_datadir(path).unwrap();
 
     for i in data.iter() {
-        if i.contains(".esp") {
+        if i.contains(".esp") || i.contains(".esm") {
             plugins.push(i.to_string());
         }
     }
