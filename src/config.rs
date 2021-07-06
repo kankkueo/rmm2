@@ -50,10 +50,11 @@ impl Gamepath {
     }
 }
 
-fn create_conf_file(conf: &str) -> io::Result<()> {
-    let dir = format!("{}{}", env::var("HOME").unwrap(), "/config/rmm2/");
-    fs::create_dir_all(dir.clone())?;
-    fs::write(conf, "")
+fn create_conf_file(conf: &Path) -> io::Result<()> {
+//    let dir = format!("{}{}", env::var("HOME").unwrap(), "/config/rmm2/");
+    let dir = conf.clone().previous(); 
+    fs::create_dir_all(dir.as_str())?;
+    fs::write(conf.as_str(), "")
 }
 
 fn write_conf_file(config: &GamepathsT) -> io::Result<()> {
@@ -206,7 +207,7 @@ pub fn read_config(mode: usize) -> Gamepath {
     match fs::read_to_string(&conf.as_str()) {
         Ok(x) => read_toml(toml::from_str(&x).unwrap(), mode), 
         _default => {
-            create_conf_file(&conf.as_str()).unwrap(); 
+            create_conf_file(&conf).unwrap(); 
             read_config(mode)
         }
     }
