@@ -15,6 +15,7 @@ use crate::config::Gamepath;
 use crate::paths::Path;
 
 mod utils;
+mod image;
 
 pub fn mode_selection_menu() -> io::Result<usize> {
 
@@ -291,6 +292,7 @@ pub fn selection_menu(group: &FomodGroup) -> io::Result<Vec<usize>> {
     let mut p_vec = loadorder::to_plgvec(group.plugins());
     let mut menu = utils::StateList::from(loadorder::to_strvec(&p_vec));
     let mut description = String::new();
+    let mut image = String::new();
 
     loop { 
 
@@ -309,8 +311,8 @@ pub fn selection_menu(group: &FomodGroup) -> io::Result<Vec<usize>> {
                 .direction(Direction::Vertical)
                 .margin(0)
                 .constraints([
-                    Constraint::Percentage(50),
-                    Constraint::Percentage(50),
+                    Constraint::Percentage(40),
+                    Constraint::Percentage(60),
 
                 ].as_ref())
                 .split(chunks_left[1]);
@@ -337,10 +339,12 @@ pub fn selection_menu(group: &FomodGroup) -> io::Result<Vec<usize>> {
 
             match menu.state.selected() {
                 Some(x) => {
+                    image = group.plugins[x].image.as_str();
                     description = group.plugins[x].description.clone();
                 }
                 None => {}
             }
+
 
             let infobox = Paragraph::new(description.clone())
                 .block(
@@ -357,16 +361,15 @@ pub fn selection_menu(group: &FomodGroup) -> io::Result<Vec<usize>> {
                 )
                 .alignment(Alignment::Left);
 
-            let imagebox = Block::default()
-                        .borders(Borders::ALL)
-                        .border_style(
-                            Style::default()
-                                .fg(Color::Rgb(255, 255, 255))
-                        );
-
             f.render_stateful_widget(list, chunks_left[0], &mut menu.state);
             f.render_widget(infobox, chunks_right[0]);
-            f.render_widget(imagebox, chunks_right[1]);
+            image::print_image(
+                &image, 
+                chunks_right[1].x, 
+                chunks_right[1].y,
+                chunks_right[1].width - 1,
+                chunks_right[1].height - 1,
+            );
 
         })?;
 
@@ -383,7 +386,8 @@ pub fn selection_menu(group: &FomodGroup) -> io::Result<Vec<usize>> {
             Key::Right | Key::Char('l') => if loadorder::any_active(&p_vec) {
                 return Ok(loadorder::get_active(&p_vec));
             }
-            _default => continue,
+            //_default => continue,
+            _default => panic!("jöö"),
         }
     }
 }
