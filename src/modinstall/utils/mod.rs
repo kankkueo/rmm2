@@ -50,10 +50,10 @@ impl FomodGroup {
 pub fn read_install_instructions(src: &Path) -> Vec<FomodGroup> {
     let file = dir::find_installfile(src);
     let raw = xml::read_xml_file(&file.as_str()).unwrap();
-    read_groups(raw)
+    read_groups(raw, src)
 }
 
-fn read_groups(raw: xmltree::Element) -> Vec<FomodGroup> {
+fn read_groups(raw: xmltree::Element, src: &Path) -> Vec<FomodGroup> {
     let groups = xml::get_children_r(raw, "group");
     let mut groups_v: Vec<FomodGroup> = Vec::new();
 
@@ -63,13 +63,13 @@ fn read_groups(raw: xmltree::Element) -> Vec<FomodGroup> {
             FomodGroup {
                 name: i.attributes["name"].clone(),
                 gtype: i.attributes["type"].clone(),
-                plugins: read_plugins(i.clone()),
+                plugins: read_plugins(i.clone(), src),
             } );
     }
     groups_v
 }
 
-fn read_plugins(group: xmltree::Element) -> Vec<FomodPlugin> {
+fn read_plugins(group: xmltree::Element, src: &Path) -> Vec<FomodPlugin> {
     let plugins = xml::get_children_r(group, "plugin");
     let mut plugins_v: Vec<FomodPlugin> = Vec::new();
 
@@ -86,7 +86,7 @@ fn read_plugins(group: xmltree::Element) -> Vec<FomodPlugin> {
         }
 
         match i.get_child("image") {
-            Some(x) => { plugin.image = Path::from(&x.attributes["path"]); }
+            Some(x) => { plugin.image = src.clone().push_p(Path::from(&x.attributes["path"])); }
             None => {}
         }
 
