@@ -13,7 +13,7 @@ fn main() -> io::Result<()> {
     let mode = ui::mode_selection_menu().unwrap();
     
     let config = config::read_config(mode);
-    let mut plugins = files::get_active_mods(&config.data, &config.plugins, mode);
+    let mut plugins = files::get_active_mods(&config.data, &config.plugins);
     let mut mods = files::read_datadir(&config.mods).unwrap();
 
     loop {

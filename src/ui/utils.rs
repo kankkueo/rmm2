@@ -18,6 +18,7 @@ pub struct StateList<'a> {
     pub state: ListState,
 }
 
+#[allow(dead_code)]
 impl<'a> StateList<'a> {
     pub fn new() -> StateList<'a> {
         StateList {

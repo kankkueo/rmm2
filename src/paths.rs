@@ -6,6 +6,7 @@ pub struct Path {
     path: String,
 }
 
+#[allow(dead_code)]
 impl Path {
 
     pub fn new() -> Path {

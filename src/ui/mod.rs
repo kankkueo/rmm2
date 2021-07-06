@@ -15,8 +15,6 @@ use crate::config::Gamepath;
 use crate::paths::Path;
 
 mod utils;
-mod events;
-
 
 pub fn mode_selection_menu() -> io::Result<usize> {
 

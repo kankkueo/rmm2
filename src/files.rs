@@ -42,7 +42,7 @@ fn ignore_asterix(src: &str) -> String {
     buf 
 }
 
-pub fn get_active_mods(path_d: &Path, path_p: &Path, mode: usize) -> Vec<Plugin> {
+pub fn get_active_mods(path_d: &Path, path_p: &Path) -> Vec<Plugin> {
     let mut plugins: Vec<Plugin> = Vec::new();
     let buffer = fs::read_to_string(path_p.as_str()).expect("Could not read file");
 
