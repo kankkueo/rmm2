@@ -21,9 +21,12 @@ fn main() -> io::Result<()> {
         match ui::plugin_menu(&mut plugins, &mut mods, config.clone(), mode).unwrap() {
             Some(x) => match modinstall::install_mod(x, config.data.clone()) {
                 Ok(_x) => {
+                    println!("Install successful!\n Press enter to continue");
+                    ui::utils::keyin();
                     mods = files::read_datadir(&config.mods).unwrap();
+                    plugins = files::get_active_mods(&config.data, &config.plugins);
                 },
-                Err(e) => eprintln!("{}", e),
+                Err(e) => panic!("Install failed: {}", e),
             }
             None => break,
         }

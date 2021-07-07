@@ -14,7 +14,7 @@ use crate::files::{write_loadorder, read_datadir};
 use crate::config::Gamepath;
 use crate::paths::Path;
 
-mod utils;
+pub mod utils;
 mod image;
 
 pub fn mode_selection_menu() -> io::Result<usize> {
