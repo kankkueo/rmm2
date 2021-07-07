@@ -25,6 +25,21 @@ pub fn cap_dir(src: &Path) -> io::Result<()> {
     Ok(())
 }
 
+pub fn cap_dir_all(src: &Path) -> io::Result<()> {
+    let contents: Vec<String> = read_datadir(src)?;
+    for i in 0..contents.len() {
+
+        let dir = src.clone().push(&contents[i]);
+        let dir_c = src.clone().push(&fix_case(&contents[i]));
+
+        fs::rename(dir.as_str(), dir_c.as_str())?;
+        if dir_c.is_dir() {
+            cap_dir_all(&dir_c)?;
+        }
+    }
+    Ok(())
+}
+
 fn dir_r(src: &Path, v: &mut Vec<String>) -> io::Result<()> {
     let contents = read_datadir(src)?;
     for i in contents.iter() {

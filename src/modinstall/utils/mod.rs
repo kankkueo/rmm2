@@ -86,7 +86,7 @@ fn read_plugins(group: xmltree::Element, src: &Path) -> Vec<FomodPlugin> {
         }
 
         match i.get_child("image") {
-            Some(x) => { plugin.image = src.clone().push_p(Path::from(&x.attributes["path"])); }
+            Some(x) => { plugin.image = src.clone().push_p(Path::from(&dir::fix_case(&x.attributes["path"]))); }
             None => {}
         }
 
@@ -115,7 +115,7 @@ fn read_files(plugin: xmltree::Element) -> Vec<FomodFile> {
 
     for i in files.iter() {
         files_v.push( FomodFile {
-            source: Path::from(&i.attributes["source"]),
+            source: Path::from(&dir::fix_case(&i.attributes["source"])),
             destination: Path::from(&dir::fix_case(&i.attributes["destination"])),
             ftype: i.name.clone(),
         } );
