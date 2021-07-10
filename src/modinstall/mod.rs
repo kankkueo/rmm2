@@ -41,7 +41,7 @@ fn unpack(src: &Path, dest: &Path) -> io::Result<()> {
 
 fn install_fomod(src: &Path, dest: &Path) -> io::Result<()> {
     utils::dir::cap_dir_all(&src)?;
-    let src = src.clone().next();
+    let src = utils::dir::mod_root(src);
 
     let groups = utils::read_install_instructions(&src, &dest);
         for i in 0..groups.len() {
@@ -59,7 +59,7 @@ fn install_fomod(src: &Path, dest: &Path) -> io::Result<()> {
 
 fn install_non_fomod(src: &Path, dest: &Path) -> io::Result<()> {
     utils::dir::cap_dir(&src)?;
-    let src = src.clone().next();
+    let src = utils::dir::mod_root(src);
     utils::dir::move_files_all(&src, &dest)?;
 //    fs::remove_dir_all(src.as_str())?;
     Ok(())

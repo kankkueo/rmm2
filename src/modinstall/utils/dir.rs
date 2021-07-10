@@ -84,6 +84,25 @@ pub fn find_installfile(src: &Path) -> Path {
     return Path::new();
 }
 
+pub fn mod_root(src: &Path) -> Path {
+    let items = vec![
+        "textures",
+        "meshes",
+        "interface",
+        "sound",
+        "scripts",
+    ];
+
+    let mut p = src.clone();
+    while read_datadir(&p).unwrap().len() < 2 {
+        p.next();
+        for i in items.iter() {
+            if fix_case(&p.as_str()).contains(i) { return p; }
+        }
+    }
+    p
+}
+
 pub fn move_files_all(src: &Path, dest: &Path) -> io::Result<()> {
     let contents: Vec<String> = read_datadir(src).unwrap();
     for i in 0..contents.len() {

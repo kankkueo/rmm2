@@ -62,11 +62,9 @@ impl Path {
     }
 
     pub fn next(&mut self) -> Path {
-        if self.is_dir() {
-            let contents = read_datadir(&self).unwrap();
-            if contents.len() == 1 {
-                self.push(&contents[0]);
-            }
+        match read_datadir(self) {
+            Ok(x) => { self.push(&x[0]); },
+            Err(_e) => {}
         }
         self.clone()
     }

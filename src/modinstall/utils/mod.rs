@@ -79,16 +79,6 @@ impl FomodPlugin {
         }
         Ok(())
     }
-
-    fn active_cflags(&mut self) {
-        match self.c_flags {
-            Some(x) => {
-                for i in 0..x.len() {
-                    x[i].active = true;
-                }
-            }
-        }
-    }
 }
 
 impl FomodGroup {
@@ -120,10 +110,9 @@ impl FomodGroup {
         self.plugins[index].image.as_str()
     }
 
-    pub fn install_plugins(&mut self, index: Vec<usize>) -> io::Result<()> {
+    pub fn install_plugins(&self, index: Vec<usize>) -> io::Result<()> {
         for i in index.iter() {
             self.plugins[i.clone()].install_files()?;
-            self.plugins[i.clone()].active_cflags();
         }
         Ok(())
     }
@@ -232,11 +221,11 @@ fn read_files(plugin: xmltree::Element, src: &Path, dest: &Path) -> Vec<FomodFil
 
 fn read_cflags(plugin: xmltree::Element) -> Vec<ConditionFlag> {
     let flags = xml::get_children_all(plugin);
-    let flags_v: Vec<ConditionFlag> = Vec::new();
+    let mut flags_v: Vec<ConditionFlag> = Vec::new();
 
     for i in flags.iter() {
         flags_v.push( ConditionFlag {
-            name: i.attributes["name"],
+            name: i.attributes["name"].clone(),
             active: false
         } );
     }
@@ -254,7 +243,7 @@ fn read_patterns(raw: xmltree::Element, src: &Path, dest: &Path) -> Vec<Pattern>
         match i.get_child("dependencies") {
             Some(x) => { 
                 pt.deps = read_deps(x.clone()); 
-                pt.oper = x.attributes["operator"];
+                pt.oper = x.attributes["operator"].clone();
             },
             None => {}
         }
@@ -272,7 +261,7 @@ fn read_deps(pattern: xmltree::Element) -> Vec<String> {
     let mut deps_v: Vec<String> = Vec::new();
 
     for i in deps.iter() {
-        deps_v.push(i.attributes["flag"]);
+        deps_v.push(i.attributes["flag"].clone());
     }
     deps_v
 }
