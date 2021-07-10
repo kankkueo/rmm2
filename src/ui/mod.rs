@@ -17,8 +17,8 @@ use crate::paths::Path;
 pub mod utils;
 mod image;
 
+//Select which game to manage
 pub fn mode_selection_menu() -> io::Result<usize> {
-
     let stdout = io::stdout().into_raw_mode()?;
     let stdout = AlternateScreen::from(stdout);
     let backend = TermionBackend::new(stdout);
@@ -80,6 +80,7 @@ pub fn mode_selection_menu() -> io::Result<usize> {
     }
 }
 
+//The main menu of the program
 pub fn plugin_menu(plugins: &mut Vec<loadorder::Plugin>, mods: &mut Vec<String>,paths: Gamepath, mode: usize) -> io::Result<Option<Path>> {
     let stdout = io::stdout().into_raw_mode()?;
     let stdout = AlternateScreen::from(stdout);
@@ -207,6 +208,7 @@ pub fn plugin_menu(plugins: &mut Vec<loadorder::Plugin>, mods: &mut Vec<String>,
     Ok(None)
 }  
 
+//This is for constructing the config file
 pub fn fileexplorer(message: &str) -> io::Result<Path> {
     let stdout = io::stdout().into_raw_mode()?;
     let stdout = AlternateScreen::from(stdout);
@@ -282,7 +284,7 @@ pub fn fileexplorer(message: &str) -> io::Result<Path> {
     }
 }
 
-
+//Menu to select which plugins to install
 pub fn selection_menu(group: &FomodGroup) -> io::Result<Vec<usize>> {
     let stdout = io::stdout().into_raw_mode()?;
     let stdout = AlternateScreen::from(stdout);

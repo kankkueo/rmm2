@@ -6,6 +6,10 @@ use crate::ui::utils::keyin;
 pub mod xml;
 pub mod dir;
 
+/* These structs are trying to mimic the structure of a fomod
+ * ModuleConfig file. The installation instructions are stored 
+ * here. */
+ 
 struct FomodFile {
     source: Path,
     destination: Path,
@@ -198,6 +202,9 @@ impl Pattern {
         Ok(())
     }
 }
+
+/* All the stuff from here on has to do with reading the
+ * installation steps from the ModuleConfig file */
 
 pub fn read_install_instructions(src: &Path, dest: &Path) -> Vec<FomodGroup> {
     let file = dir::find_installfile(src);
