@@ -320,7 +320,7 @@ pub fn selection_menu(group: &FomodGroup) -> io::Result<Vec<usize>> {
             let list = List::new(menu.items.clone())
                 .block(
                     Block::default()
-                        .title(group.gtype.clone())
+                        .title(group.title())
                         .borders(Borders::ALL)
                         .border_style(
                             Style::default()
@@ -339,8 +339,8 @@ pub fn selection_menu(group: &FomodGroup) -> io::Result<Vec<usize>> {
 
             match menu.state.selected() {
                 Some(x) => {
-                    image = group.plugins[x].image.as_str();
-                    description = group.plugins[x].description.clone();
+                    image = group.image(x);
+                    description = group.showinfo(x);
                 }
                 None => {}
             }

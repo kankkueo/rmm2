@@ -1,6 +1,7 @@
 use std::{io, fs};
 use crate::paths::Path;
 use crate::files::read_datadir;
+use crate::ui::utils::keyin;
 
 pub fn fix_case(src: &str) -> String {
     let mut dest = String::new();
@@ -83,3 +84,25 @@ pub fn find_installfile(src: &Path) -> Path {
     return Path::new();
 }
 
+pub fn move_files_all(src: &Path, dest: &Path) -> io::Result<()> {
+    let contents: Vec<String> = read_datadir(src).unwrap();
+    for i in 0..contents.len() {
+
+        let src_p = src.clone().push(&contents[i]);
+        let dest_p = dest.clone().push(&contents[i]);
+
+        println!("{}\n{}", src_p.as_str(), dest_p.as_str());
+
+        if src_p.is_dir() {
+            fs::create_dir_all(&dest_p.as_str())?;
+            move_files_all(&src_p, &dest_p)?;
+        }
+        else {
+            match fs::rename(src_p.as_str(), dest_p.as_str()) {
+                Ok(_x) => {},
+                Err(_e) => { println!("File not found!\nPress enter to ignore"); keyin();}
+            }
+        }
+    }
+    Ok(())
+}
