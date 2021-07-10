@@ -7,6 +7,7 @@ use crate::ui::selection_menu;
 
 use crate::ui::utils::{keyin};
 
+//For unpacking compressed archives. Experimental, fails most of the time.
 fn unpack(src: &Path, dest: &Path) -> io::Result<()> {
 
     let file = fs::File::open(src.as_str())?;
@@ -40,17 +41,23 @@ fn unpack(src: &Path, dest: &Path) -> io::Result<()> {
 }
 
 fn install_fomod(src: &Path, dest: &Path) -> io::Result<()> {
-    utils::dir::cap_dir_all(&src)?;
     let src = utils::dir::mod_root(src);
+    utils::dir::cap_dir_all(&src)?;
 
-    let groups = utils::read_install_instructions(&src, &dest);
-        for i in 0..groups.len() {
+    let mut groups = utils::read_install_instructions(&src, &dest);
+    let c_patterns = utils::read_conditional_patterns(&src, &dest);
 
-            let sclt = selection_menu(&groups[i]).unwrap();
-            groups[i].install_plugins(sclt)?;
-            println!("Press enter to continue");
-            keyin();
-       }
+    for i in 0..groups.len() {
+        let sclt = selection_menu(&groups[i]).unwrap();
+        groups[i].install_plugins(sclt)?;
+        println!("Press enter to continue");
+        keyin();
+    }
+
+    match c_patterns {
+        Some(x) => { utils::Pattern::install(x, &groups)?; },
+        None => {},
+    }
 
 //    fs::remove_dir_all(src.as_str())?;
     Ok(())

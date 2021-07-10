@@ -18,7 +18,7 @@ struct FomodPlugin {
     description: String,
     type_desc: String,
     files: Vec<FomodFile>,
-    c_flags: Option<Vec<ConditionFlag>>,
+    c_flags: Vec<ConditionFlag>,
 }
 
 pub struct FomodGroup {
@@ -32,7 +32,7 @@ struct ConditionFlag {
     active: bool,
 }
 
-struct Pattern {
+pub struct Pattern {
     deps: Vec<String>,
     oper: String,
     files: Vec<FomodFile>,
@@ -69,7 +69,7 @@ impl FomodPlugin {
             description: String::new(),
             type_desc: String::new(),
             files: Vec::new(),
-            c_flags: None,
+            c_flags: Vec::new(),
         }
     }
 
@@ -78,6 +78,12 @@ impl FomodPlugin {
             i.install()?;
         }
         Ok(())
+    }
+
+    fn activate_flags(&mut self) {
+        for i in 0..self.c_flags.len() {
+            self.c_flags[i].active = true;
+        }
     }
 }
 
@@ -110,11 +116,28 @@ impl FomodGroup {
         self.plugins[index].image.as_str()
     }
 
-    pub fn install_plugins(&self, index: Vec<usize>) -> io::Result<()> {
+    pub fn install_plugins(&mut self, index: Vec<usize>) -> io::Result<()> {
         for i in index.iter() {
             self.plugins[i.clone()].install_files()?;
+            self.activate_flags(&index);
         }
         Ok(())
+    }
+
+    fn activate_flags(&mut self, index: &Vec<usize>) {
+        for i in index.iter() {
+            self.plugins[i.clone()].activate_flags();
+        }
+    }
+
+    fn get_active_flags(&self) -> Vec<String> {
+        let mut flags_v: Vec<String> = Vec::new();
+        for i in self.plugins.iter() {
+            for j in i.c_flags.iter() {
+                if j.active { flags_v.push(j.name.to_string()); }
+            }
+        }
+        flags_v
     }
 }
 
@@ -127,10 +150,51 @@ impl Pattern {
         }
     }
 
-    pub fn install(cflags: Vec<ConditionFlag>) -> io::Result<()> {
-        for i in cflags.iter() {
-
+    fn check_vec(vec: &Vec<String>, pred: &str) -> bool {
+        for i in vec.iter() {
+            if i == pred { return true; }
         }
+        false
+    }
+
+    fn check(&self, flags: &Vec<String>) -> bool {
+        if self.oper == "And" || self.oper == "and" {
+            for i in self.deps.iter() {
+                if !Pattern::check_vec(flags, i) { return false; }
+            }
+            return true;
+        }
+        else if self.oper == "Or" || self.oper == "or" {
+            for i in self.deps.iter() {
+                if Pattern::check_vec(flags, i) { return true; }
+            }
+            return false;
+        }
+        false
+    }
+
+    fn install_files(&self) -> io::Result<()> {
+        for i in self.files.iter() {
+            i.install()?;
+        }
+
+        Ok(())
+    }
+
+    pub fn install(pvec: Vec<Self>, groups: &Vec<FomodGroup>) -> io::Result<()> {
+        let mut flags: Vec<String> = Vec::new();
+        for i in groups.iter() {
+            for j in i.get_active_flags().iter() {
+                flags.push(j.to_string());
+            }
+        }
+
+        for i in pvec.iter() {
+            if i.check(&flags) {
+                i.install_files()?;
+            }
+        }
+
         Ok(())
     }
 }
@@ -139,6 +203,15 @@ pub fn read_install_instructions(src: &Path, dest: &Path) -> Vec<FomodGroup> {
     let file = dir::find_installfile(src);
     let raw = xml::read_xml_file(&file.as_str()).unwrap();
     read_groups(raw, src, dest)
+}
+
+pub fn read_conditional_patterns(src: &Path, dest: &Path) -> Option<Vec<Pattern>> {
+    let file = dir::find_installfile(src);
+    let raw = xml::read_xml_file(&file.as_str()).unwrap();
+    let ps = read_patterns(raw, src, dest);
+
+    if ps.len() > 0 { return Some(ps); }
+    else { return None; }
 }
 
 fn read_groups(raw: xmltree::Element, src: &Path, dest: &Path) -> Vec<FomodGroup> {
@@ -192,7 +265,7 @@ fn read_plugins(group: xmltree::Element, src: &Path, dest: &Path) -> Vec<FomodPl
         }
 
         match i.get_child("conditionFlags") {
-            Some(x) => { plugin.c_flags = Some(read_cflags(x.clone())); },
+            Some(x) => { plugin.c_flags = read_cflags(x.clone()); },
             None => {}
         }
 
@@ -252,6 +325,8 @@ fn read_patterns(raw: xmltree::Element, src: &Path, dest: &Path) -> Vec<Pattern>
             Some(x) => { pt.files = read_files(x.clone(), src, dest); },
             None => {}
         }
+
+        patterns_v.push(pt);
     }
     patterns_v
 }
