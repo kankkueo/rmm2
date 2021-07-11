@@ -31,15 +31,40 @@ pub struct FomodGroup {
     plugins: Vec<FomodPlugin>,
 }
 
-struct ConditionFlag {
+pub struct FomodInstallStep {
     name: String,
-    active: bool,
+    deps: Option<Vec<ConditionFlag>>,
+    req_files: Vec<FomodFile>,
+    pub groups: Vec<FomodGroup>,
+}
+
+pub struct ConditionFlag {
+    name: String,
+    state: bool,
 }
 
 pub struct Pattern {
-    deps: Vec<String>,
+    deps: Vec<ConditionFlag>,
     oper: String,
     files: Vec<FomodFile>,
+}
+
+impl FomodInstallStep {
+    fn new() -> Self {
+        Self {
+            name: String::new(),
+            deps: None,
+            req_files: Vec::new(),
+            groups: Vec::new(),
+        }
+    }
+
+    pub fn check(&self, flags: &Vec<ConditionFlag>) -> bool {
+        match &self.deps {
+            Some(x) => { return ConditionFlag::check_all(&x, flags); }
+            None => { return true; }
+        }
+    }
 }
 
 impl FomodFile {
@@ -66,8 +91,8 @@ impl FomodFile {
 }
 
 impl FomodPlugin {
-    fn new() -> FomodPlugin {
-        FomodPlugin {
+    fn new() -> Self {
+        Self {
             name: String::new(),
             image: Path::new(),
             description: String::new(),
@@ -82,12 +107,6 @@ impl FomodPlugin {
             i.install()?;
         }
         Ok(())
-    }
-
-    fn activate_flags(&mut self) {
-        for i in 0..self.c_flags.len() {
-            self.c_flags[i].active = true;
-        }
     }
 }
 
@@ -120,61 +139,32 @@ impl FomodGroup {
         self.plugins[index].image.as_str()
     }
 
-    pub fn install_plugins(&mut self, index: Vec<usize>) -> io::Result<()> {
+    pub fn install_plugins(&self, index: &Vec<usize>) -> io::Result<()> {
         for i in index.iter() {
             self.plugins[i.clone()].install_files()?;
-            self.activate_flags(&index);
         }
         Ok(())
     }
 
-    fn activate_flags(&mut self, index: &Vec<usize>) {
+    pub fn get_flags(&self, index: &Vec<usize>, flags_v: &mut Vec<ConditionFlag>) {
         for i in index.iter() {
-            self.plugins[i.clone()].activate_flags();
-        }
-    }
-
-    fn get_active_flags(&self) -> Vec<String> {
-        let mut flags_v: Vec<String> = Vec::new();
-        for i in self.plugins.iter() {
-            for j in i.c_flags.iter() {
-                if j.active { flags_v.push(j.name.to_string()); }
+            for j in self.plugins[i.clone()].c_flags.iter() {
+                flags_v.push( ConditionFlag {
+                    name: j.name.clone(),
+                    state: j.state,
+                } );
             }
         }
-        flags_v
     }
-}
+} 
 
 impl Pattern {
-    fn new() -> Pattern {
-        Pattern {
+    fn new() -> Self {
+        Self {
             deps: Vec::new(),
             oper: String::new(),
             files: Vec::new(),
         }
-    }
-
-    fn check_vec(vec: &Vec<String>, pred: &str) -> bool {
-        for i in vec.iter() {
-            if i == pred { return true; }
-        }
-        false
-    }
-
-    fn check(&self, flags: &Vec<String>) -> bool {
-        if self.oper == "And" || self.oper == "and" {
-            for i in self.deps.iter() {
-                if !Pattern::check_vec(flags, i) { return false; }
-            }
-            return true;
-        }
-        else if self.oper == "Or" || self.oper == "or" {
-            for i in self.deps.iter() {
-                if Pattern::check_vec(flags, i) { return true; }
-            }
-            return false;
-        }
-        false
     }
 
     fn install_files(&self) -> io::Result<()> {
@@ -185,14 +175,16 @@ impl Pattern {
         Ok(())
     }
 
-    pub fn install(pvec: Vec<Self>, groups: &Vec<FomodGroup>) -> io::Result<()> {
-        let mut flags: Vec<String> = Vec::new();
-        for i in groups.iter() {
-            for j in i.get_active_flags().iter() {
-                flags.push(j.to_string());
-            }
+    fn check(&self, flags: &Vec<ConditionFlag>) -> bool {
+        if self.oper == "And" || self.oper == "and" {
+            ConditionFlag::check_all(&self.deps, flags)
         }
+        else {
+            ConditionFlag::check_one(&self.deps, flags)
+        }
+    }
 
+    pub fn install(pvec: Vec<Self>, flags: Vec<ConditionFlag>) -> io::Result<()> {
         for i in pvec.iter() {
             if i.check(&flags) {
                 i.install_files()?;
@@ -203,13 +195,43 @@ impl Pattern {
     }
 }
 
+impl ConditionFlag {
+    fn new() -> Self {
+        Self {
+            name: String::new(),
+            state: true,
+        }
+    }
+
+    fn check_fvec(vec: &Vec<Self>, flag: &Self) -> bool {
+        for i in vec.iter() {
+            if i.name == flag.name && i.state == flag.state { return true; }
+        }
+        false
+    }
+
+    fn check_all(deps: &Vec<Self>, flags: &Vec<Self>) -> bool {
+        for i in deps.iter() {
+            if !Self::check_fvec(flags, i) { return false; }
+        }
+        true
+    }
+
+    fn check_one(deps: &Vec<Self>, flags: &Vec<Self>) -> bool {
+        for i in deps.iter() {
+            if Self::check_fvec(flags, i) { return true; }
+        }
+        false
+    }
+}
+
 /* All the stuff from here on has to do with reading the
  * installation steps from the ModuleConfig file */
 
-pub fn read_install_instructions(src: &Path, dest: &Path) -> Vec<FomodGroup> {
+pub fn read_install_instructions(src: &Path, dest: &Path) -> Vec<FomodInstallStep> {
     let file = dir::find_installfile(src);
     let raw = xml::read_xml_file(&file.as_str()).unwrap();
-    read_groups(raw, src, dest)
+    read_install_steps(raw, src, dest)
 }
 
 pub fn read_conditional_patterns(src: &Path, dest: &Path) -> Option<Vec<Pattern>> {
@@ -221,12 +243,36 @@ pub fn read_conditional_patterns(src: &Path, dest: &Path) -> Option<Vec<Pattern>
     else { return None; }
 }
 
+pub fn read_install_steps(raw: xmltree::Element, src: &Path, dest: &Path) -> Vec<FomodInstallStep> {
+    let steps = xml::get_children_r(raw, "installStep");
+    let mut steps_v: Vec<FomodInstallStep> = Vec::new();
+
+    for i in steps.iter() {
+        let mut step = FomodInstallStep::new();
+        step.name = i.attributes["name"].clone();
+        step.groups = read_groups(i.clone(), src, dest);
+        
+        match i.get_child("requiredFiles") { //placehoder name
+            Some(x) => { step.req_files = read_files(x.clone(), src, dest); },
+            None => {}
+        }
+
+        match i.get_child("visible") {
+            Some(x) => { step.deps = Some(read_deps(x.clone())); },
+            None => {}
+        }
+
+        steps_v.push(step);
+    }
+
+    steps_v
+}
+
 fn read_groups(raw: xmltree::Element, src: &Path, dest: &Path) -> Vec<FomodGroup> {
     let groups = xml::get_children_r(raw, "group");
     let mut groups_v: Vec<FomodGroup> = Vec::new();
 
     for i in groups.iter() {
-
         groups_v.push(
             FomodGroup {
                 name: i.attributes["name"].clone(),
@@ -303,11 +349,35 @@ fn read_cflags(plugin: xmltree::Element) -> Vec<ConditionFlag> {
     let flags = xml::get_children_all(plugin);
     let mut flags_v: Vec<ConditionFlag> = Vec::new();
 
+    let negv = vec![
+        "off","Off", "OFF",
+        "no","No", "NO",
+        "n", "N",
+    ];
+
+    let posv = vec![
+        "on", "On", "ON",
+        "yes", "Yes", "YES",
+        "y", "Y",
+    ];
+
     for i in flags.iter() {
-        flags_v.push( ConditionFlag {
-            name: i.attributes["name"].clone(),
-            active: false
-        } );
+        let mut flag = ConditionFlag::new();
+        flag.name = i.attributes["name"].clone();
+
+        match i.get_text() {
+            Some(x) => {
+                for j in negv.iter() {
+                    if x == j.clone() { flag.state = false; }
+                }
+                for j in posv.iter() {
+                    if x == j.clone() { flag.state = true; }
+                }
+            },
+            None => {}
+        }
+
+        flags_v.push(flag);
     }
 
     flags_v
@@ -338,12 +408,35 @@ fn read_patterns(raw: xmltree::Element, src: &Path, dest: &Path) -> Vec<Pattern>
     patterns_v
 }
 
-fn read_deps(pattern: xmltree::Element) -> Vec<String> {
+fn read_deps(pattern: xmltree::Element) -> Vec<ConditionFlag> {
     let deps = xml::get_children_all(pattern);
-    let mut deps_v: Vec<String> = Vec::new();
+    let mut deps_v: Vec<ConditionFlag> = Vec::new();
+
+    let negv = vec![
+        "off","Off", "OFF",
+        "no","No", "NO",
+        "n", "N",
+    ];
+
+    let posv = vec![
+        "on", "On", "ON",
+        "yes", "Yes", "YES",
+        "y", "Y",
+    ];
 
     for i in deps.iter() {
-        deps_v.push(i.attributes["flag"].clone());
+        let mut flag = ConditionFlag::new();
+        flag.name = i.attributes["flag"].clone();
+        let val = i.attributes["value"].clone();
+
+        for j in negv.iter() {
+            if val == j.clone() { flag.state = false; }
+        }
+        for j in posv.iter() {
+            if val == j.clone() { flag.state = true; }
+        }
+ 
+        deps_v.push(flag);
     }
     deps_v
 }

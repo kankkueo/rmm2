@@ -44,19 +44,19 @@ fn install_fomod(src: &Path, dest: &Path) -> io::Result<()> {
     let src = utils::dir::mod_root(src);
     utils::dir::cap_dir_all(&src)?;
 
-    let mut groups = utils::read_install_instructions(&src, &dest);
+    let mut c_flags: Vec<utils::ConditionFlag> = Vec::new();
+    let i_steps = utils::read_install_instructions(&src, &dest);
     let c_patterns = utils::read_conditional_patterns(&src, &dest);
 
-    for i in 0..groups.len() {
-        let sclt = selection_menu(&groups[i]).unwrap();
-        groups[i].install_plugins(sclt)?;
-        println!("Press enter to continue");
-        keyin();
-    }
-
-    match c_patterns {
-        Some(x) => { utils::Pattern::install(x, &groups)?; },
-        None => {},
+    for i in i_steps.iter() {
+        if i.check(&c_flags) {
+            for j in i.groups.iter() {
+                let sclt = selection_menu(j).unwrap();
+                j.install_plugins(&sclt)?;
+                j.get_flags(&sclt, &mut c_flags);
+                println!("Press enter to continue"); keyin();
+            }
+        }
     }
 
 //    fs::remove_dir_all(src.as_str())?;

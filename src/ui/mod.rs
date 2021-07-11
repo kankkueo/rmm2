@@ -385,7 +385,7 @@ pub fn selection_menu(group: &FomodGroup) -> io::Result<Vec<usize>> {
                 }
                 None => continue,
             }
-            Key::Right | Key::Char('l') => if loadorder::any_active(&p_vec) {
+            Key::Right | Key::Char('l') => /*if loadorder::any_active(&p_vec)*/ {
                 return Ok(loadorder::get_active(&p_vec));
             }
             //_default => continue,
