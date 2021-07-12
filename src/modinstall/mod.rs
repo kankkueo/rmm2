@@ -41,15 +41,17 @@ fn unpack(src: &Path, dest: &Path) -> io::Result<()> {
 }
 
 fn install_fomod(src: &Path, dest: &Path) -> io::Result<()> {
-    let src = utils::dir::mod_root(src);
-    utils::dir::cap_dir_all(&src)?;
+    let srcr = utils::dir::mod_root(src);
+    utils::dir::cap_dir_all(&srcr)?;
 
     let mut c_flags: Vec<utils::ConditionFlag> = Vec::new();
-    let i_steps = utils::read_install_instructions(&src, &dest);
-    let c_patterns = utils::read_conditional_patterns(&src, &dest);
+    let i_steps = utils::read_install_instructions(&srcr, &dest);
+    let c_patterns = utils::read_conditional_install(&srcr, &dest);
 
     for i in i_steps.iter() {
         if i.check(&c_flags) {
+            i.install_req_files()?;
+
             for j in i.groups.iter() {
                 let sclt = selection_menu(j).unwrap();
                 j.install_plugins(&sclt)?;
@@ -59,16 +61,21 @@ fn install_fomod(src: &Path, dest: &Path) -> io::Result<()> {
         }
     }
 
-//    fs::remove_dir_all(src.as_str())?;
+    match c_patterns {
+        Some(x) => utils::Pattern::install(x, c_flags)?,
+        None => {}
+    }
+
+    fs::remove_dir_all(src.as_str())?;
     Ok(())
 
 }
 
 fn install_non_fomod(src: &Path, dest: &Path) -> io::Result<()> {
     utils::dir::cap_dir(&src)?;
-    let src = utils::dir::mod_root(src);
-    utils::dir::move_files_all(&src, &dest)?;
-//    fs::remove_dir_all(src.as_str())?;
+    let srcr = utils::dir::mod_root(src);
+    utils::dir::move_files_all(&srcr, &dest)?;
+    fs::remove_dir_all(src.as_str())?;
     Ok(())
 }
 

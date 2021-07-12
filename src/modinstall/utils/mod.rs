@@ -40,7 +40,7 @@ pub struct FomodInstallStep {
 
 pub struct ConditionFlag {
     name: String,
-    state: bool,
+    value: String,
 }
 
 pub struct Pattern {
@@ -64,6 +64,13 @@ impl FomodInstallStep {
             Some(x) => { return ConditionFlag::check_all(&x, flags); }
             None => { return true; }
         }
+    }
+
+    pub fn install_req_files(&self) -> io::Result<()> {
+        for i in self.req_files.iter() {
+            i.install()?;
+        }
+        Ok(())
     }
 }
 
@@ -151,7 +158,7 @@ impl FomodGroup {
             for j in self.plugins[i.clone()].c_flags.iter() {
                 flags_v.push( ConditionFlag {
                     name: j.name.clone(),
-                    state: j.state,
+                    value: j.value.clone(),
                 } );
             }
         }
@@ -199,13 +206,13 @@ impl ConditionFlag {
     fn new() -> Self {
         Self {
             name: String::new(),
-            state: true,
+            value: String::new(),
         }
     }
 
     fn check_fvec(vec: &Vec<Self>, flag: &Self) -> bool {
         for i in vec.iter() {
-            if i.name == flag.name && i.state == flag.state { return true; }
+            if i.name == flag.name && i.value == flag.value { return true; }
         }
         false
     }
@@ -234,13 +241,20 @@ pub fn read_install_instructions(src: &Path, dest: &Path) -> Vec<FomodInstallSte
     read_install_steps(raw, src, dest)
 }
 
-pub fn read_conditional_patterns(src: &Path, dest: &Path) -> Option<Vec<Pattern>> {
+pub fn read_conditional_install(src: &Path, dest: &Path) -> Option<Vec<Pattern>> {
     let file = dir::find_installfile(src);
     let raw = xml::read_xml_file(&file.as_str()).unwrap();
-    let ps = read_patterns(raw, src, dest);
 
-    if ps.len() > 0 { return Some(ps); }
-    else { return None; }
+    /* This is to avoid reading in plugin dependency patterns. not functional for now
+    match raw.get_child("conditionalFileInstall") {
+        Some(x) => Some(read_patterns(x.clone(), src, dest)),
+        None => None
+    }
+    */
+
+    let sp = read_patterns(raw, src, dest);
+    if sp.len() > 1 {return Some(sp);}
+    else {return None;}
 }
 
 pub fn read_install_steps(raw: xmltree::Element, src: &Path, dest: &Path) -> Vec<FomodInstallStep> {
@@ -349,31 +363,12 @@ fn read_cflags(plugin: xmltree::Element) -> Vec<ConditionFlag> {
     let flags = xml::get_children_all(plugin);
     let mut flags_v: Vec<ConditionFlag> = Vec::new();
 
-    let negv = vec![
-        "off","Off", "OFF",
-        "no","No", "NO",
-        "n", "N",
-    ];
-
-    let posv = vec![
-        "on", "On", "ON",
-        "yes", "Yes", "YES",
-        "y", "Y",
-    ];
-
     for i in flags.iter() {
         let mut flag = ConditionFlag::new();
         flag.name = i.attributes["name"].clone();
 
         match i.get_text() {
-            Some(x) => {
-                for j in negv.iter() {
-                    if x == j.clone() { flag.state = false; }
-                }
-                for j in posv.iter() {
-                    if x == j.clone() { flag.state = true; }
-                }
-            },
+            Some(x) => { flag.value = x.to_string(); }
             None => {}
         }
 
@@ -393,7 +388,7 @@ fn read_patterns(raw: xmltree::Element, src: &Path, dest: &Path) -> Vec<Pattern>
         match i.get_child("dependencies") {
             Some(x) => { 
                 pt.deps = read_deps(x.clone()); 
-                pt.oper = x.attributes["operator"].clone();
+                pt.oper = xml::attr(x, "operator");
             },
             None => {}
         }
@@ -409,34 +404,14 @@ fn read_patterns(raw: xmltree::Element, src: &Path, dest: &Path) -> Vec<Pattern>
 }
 
 fn read_deps(pattern: xmltree::Element) -> Vec<ConditionFlag> {
-    let deps = xml::get_children_all(pattern);
+    let deps = xml::get_children_r(pattern, "flagDependency");
     let mut deps_v: Vec<ConditionFlag> = Vec::new();
 
-    let negv = vec![
-        "off","Off", "OFF",
-        "no","No", "NO",
-        "n", "N",
-    ];
-
-    let posv = vec![
-        "on", "On", "ON",
-        "yes", "Yes", "YES",
-        "y", "Y",
-    ];
-
     for i in deps.iter() {
-        let mut flag = ConditionFlag::new();
-        flag.name = i.attributes["flag"].clone();
-        let val = i.attributes["value"].clone();
-
-        for j in negv.iter() {
-            if val == j.clone() { flag.state = false; }
-        }
-        for j in posv.iter() {
-            if val == j.clone() { flag.state = true; }
-        }
- 
-        deps_v.push(flag);
+        deps_v.push( ConditionFlag {
+            name: i.attributes["flag"].clone(),
+            value: i.attributes["value"].clone(),
+        } );
     }
     deps_v
 }

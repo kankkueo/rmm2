@@ -45,3 +45,10 @@ pub fn read_xml_file(path: &str) -> Result<xmltree::Element, xmltree::ParseError
     Element::parse(read_utf16(path).as_bytes())
 }
 
+pub fn attr(element: &xmltree::Element, pred: &str) -> String {
+    for i in element.attributes.iter() {
+        if i.0 == pred { return i.1.to_string(); }
+    }
+    String::new()
+}
+
