@@ -89,6 +89,10 @@ impl Path {
         n
     }
 
+    pub fn lastitem(&self) -> String {
+        self.items()[self.len() - 1].clone()
+    }
+
     pub fn as_str(&self) -> String {
         self.path.clone()
     }
