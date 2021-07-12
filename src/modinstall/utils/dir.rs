@@ -84,6 +84,7 @@ pub fn find_installfile(src: &Path) -> Path {
     return Path::new();
 }
 
+// Finds the actual root directory of a mod
 pub fn mod_root(src: &Path) -> Path {
     let items = vec![
         "textures",
@@ -96,8 +97,9 @@ pub fn mod_root(src: &Path) -> Path {
     let mut p = src.clone();
     while read_datadir(&p).unwrap().len() < 2 {
         p.next();
+        if !p.is_dir() { return p.previous(); }
         for i in items.iter() {
-            if fix_case(&p.as_str()).contains(i) { return p; }
+            if fix_case(&p.lastitem()) == i.to_string() { return p.previous(); }
         }
     }
     p
