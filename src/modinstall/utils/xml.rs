@@ -52,3 +52,13 @@ pub fn attr(element: &xmltree::Element, pred: &str) -> String {
     String::new()
 }
 
+pub fn next(element: xmltree::Element) -> xmltree::Element {
+    let children = get_children_all(element.clone());
+    if children.len() > 1 {
+        return element;
+    }
+    else {
+        return next(children[0].clone());
+    }
+}
+

@@ -45,13 +45,12 @@ fn install_fomod(src: &Path, dest: &Path) -> io::Result<()> {
     utils::dir::cap_dir_all(&srcr)?;
 
     let mut c_flags: Vec<utils::ConditionFlag> = Vec::new();
-    let i_steps = utils::read_install_instructions(&srcr, &dest);
-    let c_patterns = utils::read_conditional_install(&srcr, &dest);
+    let modconfig = utils::read_install_instructions(&srcr, &dest);
 
-    for i in i_steps.iter() {
+    modconfig.install_req_files()?;
+
+    for i in modconfig.installsteps.iter() {
         if i.check(&c_flags) {
-            i.install_req_files()?;
-
             for j in i.groups.iter() {
                 let sclt = selection_menu(j).unwrap();
                 j.install_plugins(&sclt)?;
@@ -61,10 +60,7 @@ fn install_fomod(src: &Path, dest: &Path) -> io::Result<()> {
         }
     }
 
-    match c_patterns {
-        Some(x) => utils::Pattern::install(x, c_flags)?,
-        None => {}
-    }
+    modconfig.install_conditionals(c_flags);
 
     fs::remove_dir_all(src.as_str())?;
     Ok(())

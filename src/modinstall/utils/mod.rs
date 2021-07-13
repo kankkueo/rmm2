@@ -9,11 +9,25 @@ pub mod dir;
 /* These structs are trying to mimic the structure of a fomod
  * ModuleConfig file. The installation instructions are stored 
  * here. */
- 
-struct FomodFile {
-    source: Path,
-    destination: Path,
-    pub ftype: String,
+
+pub struct FomodConfig {
+    pub modname: String,
+    req_files: Option<Vec<FomodFile>>,
+    pub installsteps: Vec<FomodInstallStep>,
+    conditionals: Option<Vec<Pattern>>,
+}
+
+pub struct FomodInstallStep {
+    pub name: String,
+    deps: Option<Vec<ConditionFlag>>,
+    //req_files: Vec<FomodFile>,
+    pub groups: Vec<FomodGroup>,
+}
+
+pub struct FomodGroup {
+    name: String,
+    gtype: String,
+    plugins: Vec<FomodPlugin>,
 }
 
 struct FomodPlugin {
@@ -25,17 +39,10 @@ struct FomodPlugin {
     c_flags: Vec<ConditionFlag>,
 }
 
-pub struct FomodGroup {
-    name: String,
-    gtype: String,
-    plugins: Vec<FomodPlugin>,
-}
-
-pub struct FomodInstallStep {
-    name: String,
-    deps: Option<Vec<ConditionFlag>>,
-    req_files: Vec<FomodFile>,
-    pub groups: Vec<FomodGroup>,
+struct FomodFile {
+    source: Path,
+    destination: Path,
+    pub ftype: String,
 }
 
 pub struct ConditionFlag {
@@ -43,10 +50,49 @@ pub struct ConditionFlag {
     value: String,
 }
 
-pub struct Pattern {
+struct Pattern {
     deps: Vec<ConditionFlag>,
     oper: String,
     files: Vec<FomodFile>,
+}
+
+impl FomodConfig {
+    fn new() -> Self {
+        FomodConfig {
+            modname: String::new(),
+            req_files: None,
+            installsteps: Vec::new(),
+            conditionals: None,
+        }
+    }
+
+    pub fn install_req_files(&self) -> io::Result<()> {
+        match &self.req_files {
+            Some(x) => { 
+                for i in x.iter() {
+                    i.install()?;
+                }
+            }
+            None => {}
+        }
+
+        Ok(())
+    }
+
+    pub fn install_conditionals(&self, flags: Vec<ConditionFlag>) -> io::Result<()> {
+        match &self.conditionals {
+            Some(x) => {
+                for i in x.iter() {
+                    if i.check(&flags) {
+                        i.install_files()?;
+                    }
+                }
+            }
+            None => {}
+        }
+
+        Ok(())
+    }
 }
 
 impl FomodInstallStep {
@@ -54,7 +100,6 @@ impl FomodInstallStep {
         Self {
             name: String::new(),
             deps: None,
-            req_files: Vec::new(),
             groups: Vec::new(),
         }
     }
@@ -64,56 +109,6 @@ impl FomodInstallStep {
             Some(x) => { return ConditionFlag::check_all(&x, flags); }
             None => { return true; }
         }
-    }
-
-    pub fn install_req_files(&self) -> io::Result<()> {
-        for i in self.req_files.iter() {
-            i.install()?;
-        }
-        Ok(())
-    }
-}
-
-impl FomodFile {
-    fn install(&self) -> io::Result<()> {
-        if self.ftype == "file" {
-
-            println!("{}\n{}", self.source.as_str(), self.destination.as_str());
-            fs::create_dir_all(self.destination.previous().as_str())?; 
-
-            match fs::rename(self.source.as_str(), self.destination.as_str()) {
-                Ok(_x) => {},
-                Err(_e) => { 
-                    println!("File not found!\nPress enter to ignore");
-                    keyin();
-                }
-            }
-        }
-        else if self.ftype == "folder" {
-            dir::move_files_all(&self.source, &self.destination)?;
-        }
-
-        Ok(())
-    }
-}
-
-impl FomodPlugin {
-    fn new() -> Self {
-        Self {
-            name: String::new(),
-            image: Path::new(),
-            description: String::new(),
-            type_desc: String::new(),
-            files: Vec::new(),
-            c_flags: Vec::new(),
-        }
-    }
-
-    fn install_files(&self) -> io::Result<()> {
-        for i in self.files.iter() {
-            i.install()?;
-        }
-        Ok(())
     }
 }
 
@@ -165,6 +160,49 @@ impl FomodGroup {
     }
 } 
 
+impl FomodPlugin {
+    fn new() -> Self {
+        Self {
+            name: String::new(),
+            image: Path::new(),
+            description: String::new(),
+            type_desc: String::new(),
+            files: Vec::new(),
+            c_flags: Vec::new(),
+        }
+    }
+
+    fn install_files(&self) -> io::Result<()> {
+        for i in self.files.iter() {
+            i.install()?;
+        }
+        Ok(())
+    }
+}
+
+impl FomodFile {
+    fn install(&self) -> io::Result<()> {
+        if self.ftype == "file" {
+
+            println!("{}\n{}", self.source.as_str(), self.destination.as_str());
+            fs::create_dir_all(self.destination.previous().as_str())?; 
+
+            match fs::rename(self.source.as_str(), self.destination.as_str()) {
+                Ok(_x) => {},
+                Err(_e) => { 
+                    println!("File not found!\nPress enter to ignore");
+                    keyin();
+                }
+            }
+        }
+        else if self.ftype == "folder" {
+            dir::move_files_all(&self.source, &self.destination)?;
+        }
+
+        Ok(())
+    }
+}
+
 impl Pattern {
     fn new() -> Self {
         Self {
@@ -189,16 +227,6 @@ impl Pattern {
         else {
             ConditionFlag::check_one(&self.deps, flags)
         }
-    }
-
-    pub fn install(pvec: Vec<Self>, flags: Vec<ConditionFlag>) -> io::Result<()> {
-        for i in pvec.iter() {
-            if i.check(&flags) {
-                i.install_files()?;
-            }
-        }
-
-        Ok(())
     }
 }
 
@@ -235,29 +263,43 @@ impl ConditionFlag {
 /* All the stuff from here on has to do with reading the
  * installation steps from the ModuleConfig file */
 
-pub fn read_install_instructions(src: &Path, dest: &Path) -> Vec<FomodInstallStep> {
+pub fn read_install_instructions(src: &Path, dest: &Path) -> FomodConfig {
     let file = dir::find_installfile(src);
     let raw = xml::read_xml_file(&file.as_str()).unwrap();
-    read_install_steps(raw, src, dest)
+    read_mod_config(raw, src, dest)
 }
 
-pub fn read_conditional_install(src: &Path, dest: &Path) -> Option<Vec<Pattern>> {
-    let file = dir::find_installfile(src);
-    let raw = xml::read_xml_file(&file.as_str()).unwrap();
+fn read_mod_config(raw: xmltree::Element, src: &Path, dest: &Path) -> FomodConfig {
+    let raw = xml::next(raw);
+    let mut mconf = FomodConfig::new();
 
-    /* This is to avoid reading in plugin dependency patterns. not functional for now
-    match raw.get_child("conditionalFileInstall") {
-        Some(x) => Some(read_patterns(x.clone(), src, dest)),
-        None => None
+    match raw.get_child("moduleName") {
+        Some(x) => match x.get_text() {
+            Some(z) => { mconf.modname = z.to_string(); }
+            None => {}
+        },
+        None => {}
     }
-    */
 
-    let sp = read_patterns(raw, src, dest);
-    if sp.len() > 1 {return Some(sp);}
-    else {return None;}
+    match raw.get_child("requiredInstallFiles") {
+        Some(x) => {
+            mconf.req_files = Some(read_files(x.clone(), src, dest));
+        },
+        None => {}
+    }
+
+    match raw.get_child("conditionalFileInstalls") {
+        Some(x) => {
+            mconf.conditionals = Some(read_patterns(x.clone(), src, dest))
+        },
+        None => {}
+    }
+
+    mconf.installsteps = read_install_steps(raw, src, dest);
+    mconf
 }
 
-pub fn read_install_steps(raw: xmltree::Element, src: &Path, dest: &Path) -> Vec<FomodInstallStep> {
+fn read_install_steps(raw: xmltree::Element, src: &Path, dest: &Path) -> Vec<FomodInstallStep> {
     let steps = xml::get_children_r(raw, "installStep");
     let mut steps_v: Vec<FomodInstallStep> = Vec::new();
 
@@ -266,11 +308,6 @@ pub fn read_install_steps(raw: xmltree::Element, src: &Path, dest: &Path) -> Vec
         step.name = i.attributes["name"].clone();
         step.groups = read_groups(i.clone(), src, dest);
         
-        match i.get_child("requiredFiles") { //placehoder name
-            Some(x) => { step.req_files = read_files(x.clone(), src, dest); },
-            None => {}
-        }
-
         match i.get_child("visible") {
             Some(x) => { step.deps = Some(read_deps(x.clone())); },
             None => {}
