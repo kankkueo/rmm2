@@ -16,6 +16,7 @@ fn main() -> io::Result<()> {
     let mut plugins = files::get_active_mods(&config.data, &config.plugins);
     let mut mods = files::read_datadir(&config.mods).unwrap();
 
+
     loop {
 
         match ui::plugin_menu(&mut plugins, &mut mods, config.clone(), mode).unwrap() {
@@ -31,7 +32,6 @@ fn main() -> io::Result<()> {
             None => break,
         }
     }
-
 
     Ok(())
 

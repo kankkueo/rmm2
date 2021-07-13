@@ -15,7 +15,7 @@ use crate::config::Gamepath;
 use crate::paths::Path;
 
 pub mod utils;
-mod image;
+pub mod image;
 
 //Select which game to manage
 pub fn mode_selection_menu() -> io::Result<usize> {
@@ -91,12 +91,13 @@ pub fn plugin_menu(plugins: &mut Vec<loadorder::Plugin>, mods: &mut Vec<String>,
     menu.push(utils::StateList::from(mods.to_vec()));
     let mut sclt = 0;
 
+    let helps = "Arrow/Vim keys to navigate\nEnter to select\nw/s to modify load order\nq to save and quit";
+
     loop { 
 
         terminal.draw(|f| {
-            let chunks = Layout::default()
+            let chunks_main = Layout::default()
                 .direction(Direction::Horizontal)
-                .margin(1)
                 .constraints([
                     Constraint::Percentage(50),
                     Constraint::Percentage(50),
@@ -104,6 +105,15 @@ pub fn plugin_menu(plugins: &mut Vec<loadorder::Plugin>, mods: &mut Vec<String>,
                 ].as_ref())
                 .split(f.size());
     
+            let chunks_right = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([
+                    Constraint::Percentage(88),
+                    Constraint::Percentage(12),
+    
+                ].as_ref())
+                .split(chunks_main[1]);
+
             let plugin_list = List::new(menu[0].items.clone())
                 .block(
                     Block::default()
@@ -144,8 +154,24 @@ pub fn plugin_menu(plugins: &mut Vec<loadorder::Plugin>, mods: &mut Vec<String>,
                         .add_modifier(Modifier::BOLD)
                 );
 
-            f.render_stateful_widget(plugin_list, chunks[0], &mut menu[0].state);
-            f.render_stateful_widget(mod_list, chunks[1], &mut menu[1].state);
+            let help = Paragraph::new(helps)
+                .block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .border_style(
+                            Style::default()
+                                .fg(Color::Rgb(255, 255, 255))
+                        )
+                )
+                .style(
+                    Style::default()
+                        .fg(Color::Rgb(255, 255, 255))
+                )
+                .alignment(Alignment::Center);
+
+            f.render_stateful_widget(plugin_list, chunks_main[0], &mut menu[0].state);
+            f.render_stateful_widget(mod_list, chunks_right[0], &mut menu[1].state);
+            f.render_widget(help, chunks_right[1])
 
         })?;
 
@@ -217,13 +243,14 @@ pub fn fileexplorer(message: &str) -> io::Result<Path> {
     let mut path = Path::from("/");
     let mut items = read_datadir(&path)?;
     let mut menu = utils::StateList::from(items.clone());
+
+    let helps = "Arrow/Vim keys to navigate\nEnter to select directory";
     
     loop {
 
         terminal.draw(|f| {
             let chunks = Layout::default()
                 .direction(Direction::Vertical)
-                .margin(1)
                 .constraints([
                     Constraint::Percentage(90),
                     Constraint::Percentage(10),
@@ -251,7 +278,23 @@ pub fn fileexplorer(message: &str) -> io::Result<Path> {
                         .add_modifier(Modifier::BOLD)
                 );
 
+            let help = Paragraph::new(helps)
+                .block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .border_style(
+                            Style::default()
+                                .fg(Color::Rgb(255, 255, 255))
+                        )
+                )
+                .style(
+                    Style::default()
+                        .fg(Color::Rgb(255, 255, 255))
+                )
+                .alignment(Alignment::Center);
+
             f.render_stateful_widget(list, chunks[0], &mut menu.state);
+            f.render_widget(help, chunks[1]);
 
         })?;
 
@@ -296,10 +339,12 @@ pub fn selection_menu(group: &FomodGroup) -> io::Result<Vec<usize>> {
     let mut description = String::new();
     let mut image = String::new();
 
+    let helps = "Arrow/Vim keys to navigate\nRight/l for the next step\nEnter to select";
+
     loop { 
 
         terminal.draw(|f| {
-            let chunks_left = Layout::default()
+            let chunks_main = Layout::default()
                 .direction(Direction::Horizontal)
                 .margin(0)
                 .constraints([
@@ -308,6 +353,16 @@ pub fn selection_menu(group: &FomodGroup) -> io::Result<Vec<usize>> {
     
                 ].as_ref())
                 .split(f.size());
+
+            let chunks_left = Layout::default()
+                .direction(Direction::Vertical)
+                .margin(0)
+                .constraints([
+                    Constraint::Percentage(90),
+                    Constraint::Percentage(10),
+
+                ].as_ref())
+                .split(chunks_main[0]);
     
             let chunks_right = Layout::default()
                 .direction(Direction::Vertical)
@@ -317,7 +372,7 @@ pub fn selection_menu(group: &FomodGroup) -> io::Result<Vec<usize>> {
                     Constraint::Percentage(60),
 
                 ].as_ref())
-                .split(chunks_left[1]);
+                .split(chunks_main[1]);
 
             let list = List::new(menu.items.clone())
                 .block(
@@ -347,7 +402,6 @@ pub fn selection_menu(group: &FomodGroup) -> io::Result<Vec<usize>> {
                 None => {}
             }
 
-
             let infobox = Paragraph::new(description.clone())
                 .block(
                     Block::default()
@@ -363,7 +417,25 @@ pub fn selection_menu(group: &FomodGroup) -> io::Result<Vec<usize>> {
                 )
                 .alignment(Alignment::Left);
 
+            let help = Paragraph::new(helps)
+                .block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .border_style(
+                            Style::default()
+                                .fg(Color::Rgb(255, 255, 255))
+                        )
+                )
+                .style(
+                    Style::default()
+                        .fg(Color::Rgb(255, 255, 255))
+                )
+                .alignment(Alignment::Center);
+
+
+
             f.render_stateful_widget(list, chunks_left[0], &mut menu.state);
+            f.render_widget(help, chunks_left[1]);
             f.render_widget(infobox, chunks_right[0]);
             image::print_image(
                 &image, 
