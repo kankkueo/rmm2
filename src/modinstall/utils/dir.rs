@@ -92,6 +92,9 @@ pub fn mod_root(src: &Path) -> Path {
         "interface",
         "sound",
         "scripts",
+        "skse",
+        "scripts",
+        "video",
     ];
 
     let mut p = src.clone();
