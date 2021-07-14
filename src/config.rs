@@ -117,7 +117,7 @@ fn get_plugin_path(path: &Path, mode: usize) -> Path {
         "/steamapps/compatdata/72850/pfx/drive_c/users/steamuser/Local Settings/Application Data/Skyrim/plugins.txt",
         "/steamapps/compatdata/22330/pfx/drive_c/users/steamuser/Local Settings/Application Data/Oblivion/plugins.txt",
         "/steamapps/compatdata/377160/pfx/drive_c/users/steamuser/Local Settings/Application Data/Fallout4/plugins.txt",
-        "/steamapps/compatdata/22380/pfx/drive_c/users/steamuser/Local Settings/Application Data/Fallout New Vegas/plugins.txt",
+        "/steamapps/compatdata/22380/pfx/drive_c/users/steamuser/Local Settings/Application Data/FalloutNV/plugins.txt",
         "/steamapps/compatdata/22370/pfx/drive_c/users/steamuser/My Documents/My Games/Fallout3/plugins.txt",
     ];
 
