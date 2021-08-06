@@ -6,7 +6,7 @@ pub struct Plugin {
 }
 
 
-/*
+/*  This feature has yet to be implemented (Propably never will...)
 #[derive(Clone)]
 pub struct Fomod {
     pub plugin: Plugin,
@@ -76,7 +76,7 @@ pub fn move_down(plugins: &mut Vec<Plugin>, idx: usize) {
     }
 }
 
-pub fn any_active(plugins: &Vec<Plugin>) -> bool {
+pub fn _any_active(plugins: &Vec<Plugin>) -> bool {
     for i in plugins.iter() {
         if i.active {return true;}
     }

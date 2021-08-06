@@ -60,7 +60,7 @@ fn install_fomod(src: &Path, dest: &Path) -> io::Result<()> {
         }
     }
 
-    modconfig.install_conditionals(c_flags);
+    modconfig.install_conditionals(c_flags)?;
 
     fs::remove_dir_all(src.as_str())?;
     Ok(())
