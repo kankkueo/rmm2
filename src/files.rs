@@ -3,7 +3,6 @@ use crate::loadorder::Plugin;
 use crate::paths::Path;
 use std::io;
 
-
 pub fn read_datadir(path: &Path) -> io::Result<Vec<String>> {
     let mut data = String::new();
     let mut data_v: Vec<String> = Vec::new();
@@ -13,14 +12,14 @@ pub fn read_datadir(path: &Path) -> io::Result<Vec<String>> {
         data.push_str(&format!("{:?}",i.file_name()));
     }
     for i in data.split('"') {
-        if i != "\n" && i != "" {
-            data_v.push(String::from(i));
+        if i.len() > 1  {
+            data_v.push(format_mod_name(i));
         }
     }
     Ok(data_v)
 }
 
-fn get_installed_mods(path: &Path) -> Vec<String> {
+fn read_plugins_dir(path: &Path) -> Vec<String> {
     let mut plugins: Vec<String> = Vec::new();
     let data: Vec<String> = read_datadir(path).unwrap();
 
@@ -32,30 +31,24 @@ fn get_installed_mods(path: &Path) -> Vec<String> {
     plugins
 }
 
-fn ignore_asterix(src: &str) -> String {
-    let mut buf = String::new();
-    for i in src.chars() {
-        if i != '*' {
-            buf.push(i);
-        }
-    }
-    buf 
-}
-
-pub fn get_active_mods(path_d: &Path, path_p: &Path) -> Vec<Plugin> {
+fn read_plugins_file(path: &Path) -> Vec<Plugin> {
     let mut plugins: Vec<Plugin> = Vec::new();
-    let buffer = fs::read_to_string(path_p.as_str()).expect("Could not read file");
+    let buffer = fs::read_to_string(path.as_str()).expect("Could not read file");
 
     for i in buffer.split('\n') {
-        if i != "" && i != " " && i != "\n" {
+        if i.len() > 1 {
             plugins.push( Plugin {
-                name: ignore_asterix(i),
+                name: format_mod_name(i),
                 active: true,
             } );
         }
     }
+    plugins
+}
 
-    let installed = get_installed_mods(path_d);
+pub fn get_active_mods(path_d: &Path, path_p: &Path) -> Vec<Plugin> {
+    let mut plugins = read_plugins_file(path_p);
+    let installed = read_plugins_dir(path_d);
 
     for i in installed.iter() {
         let mut act = false;
@@ -66,7 +59,7 @@ pub fn get_active_mods(path_d: &Path, path_p: &Path) -> Vec<Plugin> {
         }
         if !act {
             plugins.push( Plugin {
-                name: i.to_string(),
+                name: format_mod_name(i),
                 active: false,
             });
         }
@@ -74,10 +67,24 @@ pub fn get_active_mods(path_d: &Path, path_p: &Path) -> Vec<Plugin> {
     plugins
 }
 
+fn format_mod_name(src: &str) -> String {
+    let mut buf = String::new();
+
+    if src.contains("\'") || src.starts_with('*') {
+        for i in src.chars() {
+            if i != '*' && i != '\\' {
+                buf.push(i);
+            }
+        }
+    }
+    else { return src.to_string(); }
+    buf 
+}
+
 pub fn write_loadorder(plugins: Vec<Plugin>, path: &Path, mode: usize) {
     let mut buffer = String::new();
     for i in 0..plugins.len() {
-        if mode == 1 || mode == 3 {
+        if mode == 1 || mode == 4 {
             if plugins[i].active {
                 buffer.push('*');
                 buffer.push_str(&plugins[i].name);
