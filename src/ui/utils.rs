@@ -70,3 +70,34 @@ impl<'a> StateList<'a> {
         self.state.select(None);
     }
 }
+
+fn fit_paragraph(src: &str, w: u16) -> String {
+    let mut s = String::new();
+    let mut line: u16 = 0;
+
+    for i in src.split_whitespace() {
+        if line + i.len() as u16  + 1 >= w {
+            s.push('\n');
+            line = 0;
+        }
+
+        s.push_str(i);
+        s.push(' ');
+        line += i.len() as u16 + 1;
+    }
+
+    s
+
+}
+
+pub fn fit_info(src: &str, w: u16) -> String {
+    let mut s = String::new();
+
+    for i in src.split('\n') {
+        s.push('\n');
+        s.push_str(&fit_paragraph(i, w));
+    }
+
+    s
+}
+

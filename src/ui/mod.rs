@@ -397,7 +397,7 @@ pub fn selection_menu(group: &FomodGroup) -> io::Result<Vec<usize>> {
             match menu.state.selected() {
                 Some(x) => {
                     image = group.image(x);
-                    description = group.showinfo(x);
+                    description = utils::fit_info(&group.showinfo(x), chunks_right[0].width);
                 }
                 None => {}
             }
