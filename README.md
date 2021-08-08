@@ -23,5 +23,5 @@ It is recommended to use Kitty terminal, since it allows images to be displayed 
 
 ## Issues
 
-As stated, unpacking archives often fails. If this happens just extract the archive into a directory inside the mods directory and try again.
+As stated, unpacking archives often fails. If this happens, extract the archive into a directory inside the mods directory and try installing again.
 
