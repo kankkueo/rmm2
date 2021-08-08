@@ -5,6 +5,7 @@ use std::io;
 use crate::modinstall::utils::dir::{cap_dir, fix_case};
 use crate::paths::Path;
 use crate::ui::fileexplorer;
+use crate::files::read_datadir;
 
 #[derive(Deserialize, Serialize)]
 struct GamepathsT {
@@ -51,7 +52,6 @@ impl Gamepath {
 }
 
 fn create_conf_file(conf: &Path) -> io::Result<()> {
-//    let dir = format!("{}{}", env::var("HOME").unwrap(), "/config/rmm2/");
     let dir = conf.clone().previous(); 
     fs::create_dir_all(dir.as_str())?;
     fs::write(conf.as_str(), "")
@@ -59,7 +59,6 @@ fn create_conf_file(conf: &Path) -> io::Result<()> {
 
 fn write_conf_file(config: &GamepathsT) -> io::Result<()> {
     let conf = format!("{}{}",env::var("HOME").unwrap(), "/.config/rmm2/config");
-    //let content = format!("[Gamepaths]\n\n{}", toml::to_string(&config).unwrap());
     let content = toml::to_string(config).unwrap();
     fs::write(conf, content)
 }
@@ -71,6 +70,7 @@ fn create_game_conf(mode: usize) -> Gamepath {
         p = fileexplorer("Navigate to your game's data directory").unwrap();
     }
 
+    // changes all directories to lowercase
     match cap_dir(&p) {
         Ok(_x) => {},
         Err(_e) => {
@@ -110,38 +110,59 @@ fn create_plugin_file(path: &Path) -> io::Result<()> {
     }
 }
 
-fn get_plugin_path(path: &Path, mode: usize) -> Path {
+fn find_plugin_file(path: &Path) -> Option<String> {
+    match read_datadir(path) {
+        Ok(x) => for i in x.iter() {
+            if fix_case(i) == "plugins.txt" { 
+                return Some(i.to_string());
+            }
+        }
+        Err(_e) => { return None; }
+    }
+    None
+}
+
+fn find_library(path: &Path) -> Option<Path> {
     let mut buff = Path::new();
+    for i in path.items() {
+        if i == "steamapps" { return Some(buff); }
+        else { buff.push(&i); }
+    }
+    None
+}
+
+fn get_plugin_path(path: &Path, mode: usize) -> Path {
     let paths = vec![
-        "/steamapps/compatdata/489830/pfx/drive_c/users/steamuser/Local Settings/Application Data/Skyrim Special Edition/plugins.txt",
-        "/steamapps/compatdata/72850/pfx/drive_c/users/steamuser/Local Settings/Application Data/Skyrim/plugins.txt",
-        "/steamapps/compatdata/22330/pfx/drive_c/users/steamuser/Local Settings/Application Data/Oblivion/plugins.txt",
-        "/steamapps/compatdata/377160/pfx/drive_c/users/steamuser/Local Settings/Application Data/Fallout4/plugins.txt",
-        "/steamapps/compatdata/22380/pfx/drive_c/users/steamuser/Local Settings/Application Data/FalloutNV/plugins.txt",
-        "/steamapps/compatdata/22370/pfx/drive_c/users/steamuser/My Documents/My Games/Fallout3/plugins.txt",
+        "/steamapps/compatdata/489830/pfx/drive_c/users/steamuser/Local Settings/Application Data/Skyrim Special Edition",
+        "/steamapps/compatdata/72850/pfx/drive_c/users/steamuser/Local Settings/Application Data/Skyrim",
+        "/steamapps/compatdata/22330/pfx/drive_c/users/steamuser/Local Settings/Application Data/Oblivion",
+        "/steamapps/compatdata/377160/pfx/drive_c/users/steamuser/Local Settings/Application Data/Fallout4",
+        "/steamapps/compatdata/22380/pfx/drive_c/users/steamuser/Local Settings/Application Data/FalloutNV",
+        "/steamapps/compatdata/22370/pfx/drive_c/users/steamuser/Local Settings/Application Data/Fallout3",
     ];
 
-    for i in path.items() {
-        if i == "steamapps" {
-            buff.push(paths[mode - 1]);
-            create_plugin_file(&buff).unwrap();
-            return buff;
-        }
-        else if i.starts_with('$') {
-            buff.push(&envvar(i));
-        }
-        else {
-            buff.push(&i);
-        }
-    }
+    let mut p_path = Path::new();
 
-    let buf2 = fileexplorer("Could not find plugins file. Please enter the path manually").unwrap();
-
-    match create_plugin_file(&buf2) {
-        Ok(()) => buf2,
-        Err(_e) => {
-            println!("Please enter a valid path");
-            get_plugin_path(path, mode)
+    match find_library(path) {
+        Some(p) => {
+            p_path.push_p(p);
+            p_path.push(paths[mode - 1]);
+            match find_plugin_file(&p_path) {
+                Some(f) => {
+                    p_path.push(&f);
+                    return p_path;
+                },
+                None => {
+                    println!("Plugins file doesn't exist. creating...");
+                    p_path.push("plugins.txt");
+                    create_plugin_file(&p_path).unwrap();
+                    return p_path;
+                }
+            }
+        }
+        None => {
+            p_path = fileexplorer("Could not find plugins file. Please enter the path manually").unwrap();
+            return p_path;
         }
     }
 }
@@ -213,16 +234,4 @@ pub fn read_config(mode: usize) -> Gamepath {
     }
 }
 
-fn envvar(src: String) -> String {
-    let mut v = String::new();
-    for i in src.chars() {
-        if i != '$' {
-            v.push(i);
-        }
-    }
-    match env::var(v) {
-        Ok(x) => x,
-        Err(_e) => src,
-    }
-}
 
