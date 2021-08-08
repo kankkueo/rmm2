@@ -1,10 +1,16 @@
 # rmm2
-A simple mod manager for The Elder Scrolls and Fallout games on Linux (proton). Allows installing mods and loadorder management. Supports Fomod installers on Skyrim/SE and Fallout 4.
+A simple mod manager for The Elder Scrolls and Fallout games on Linux (proton). Allows installing mods and loadorder management. Supports Fomod installers.
 
 
 ## Installing
+Download the binary from the [releases](https://github.com/e-k1/rmm2/releases) page and copy it to your path, or build from source.
 
+#### Building from source
+You need to have rust installed on your system.
 
+Clone or download the repository. While in the downloaded directory, compile: `cargo build`
+
+Then copy the binary to your path: `cp target/debug/rmm2 <your path>`
 
 ## Usage
 
