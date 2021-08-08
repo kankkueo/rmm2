@@ -3,7 +3,7 @@ A simple mod manager for The Elder Scrolls and Fallout games on Linux (proton). 
 
 
 ## Installing
-Download the binary from the [releases](https://github.com/e-k1/rmm2/releases) page and copy it to your path, or build from source.
+Download the binary from the [releases](https://github.com/e-k1/rmm2/releases) page, make it executable with `chmod +x rmm2` and copy it to your path.
 
 #### Building from source
 You need to have rust installed on your system.
