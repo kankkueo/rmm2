@@ -16,6 +16,8 @@ pub fn read_datadir(path: &Path) -> io::Result<Vec<String>> {
             data_v.push(format_mod_name(i));
         }
     }
+
+    data_v.sort();
     Ok(data_v)
 }
 
