@@ -1,4 +1,3 @@
-//mod mods;
 mod modinstall;
 mod ui;
 mod loadorder;
