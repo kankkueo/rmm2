@@ -1,6 +1,6 @@
 use std::{io, fs};
 use crate::paths::Path;
-use crate::files::read_datadir;
+use crate::files::read_directory;
 use crate::ui::utils::keyin;
 
 pub fn fix_case(src: &str) -> String {
@@ -12,7 +12,7 @@ pub fn fix_case(src: &str) -> String {
 }
 
 pub fn cap_dir(src: &Path) -> io::Result<()> {
-    let contents: Vec<String> = read_datadir(src)?;
+    let contents: Vec<String> = read_directory(src)?;
     for i in 0..contents.len() {
 
         let dir = src.clone().push(&contents[i]);
@@ -27,7 +27,7 @@ pub fn cap_dir(src: &Path) -> io::Result<()> {
 }
 
 pub fn cap_dir_all(src: &Path) -> io::Result<()> {
-    let contents: Vec<String> = read_datadir(src)?;
+    let contents: Vec<String> = read_directory(src)?;
     for i in 0..contents.len() {
 
         let dir = src.clone().push(&contents[i]);
@@ -42,7 +42,7 @@ pub fn cap_dir_all(src: &Path) -> io::Result<()> {
 }
 
 fn dir_r(src: &Path, v: &mut Vec<String>) -> io::Result<()> {
-    let contents = read_datadir(src)?;
+    let contents = read_directory(src)?;
     for i in contents.iter() {
         let d = src.clone().push(i);
 
@@ -98,7 +98,7 @@ pub fn mod_root(src: &Path) -> Path {
     ];
 
     let mut p = src.clone();
-    while read_datadir(&p).unwrap().len() < 2 {
+    while read_directory(&p).unwrap().len() < 2 {
         p.next();
         if !p.is_dir() { return p.previous(); }
         for i in items.iter() {
@@ -109,7 +109,7 @@ pub fn mod_root(src: &Path) -> Path {
 }
 
 pub fn move_files_all(src: &Path, dest: &Path) -> io::Result<()> {
-    let contents: Vec<String> = read_datadir(src).unwrap();
+    let contents: Vec<String> = read_directory(src).unwrap();
     for i in 0..contents.len() {
 
         let src_p = src.clone().push(&contents[i]);

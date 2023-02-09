@@ -1,5 +1,5 @@
 use std::fs::read_dir;
-use crate::files::read_datadir;
+use crate::files::read_directory;
 
 #[derive(Clone)]
 pub struct Path {
@@ -62,7 +62,7 @@ impl Path {
     }
 
     pub fn next(&mut self) -> Path {
-        match read_datadir(self) {
+        match read_directory(self) {
             Ok(x) => { self.push(&x[0]); },
             Err(_e) => {}
         }

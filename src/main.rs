@@ -9,13 +9,22 @@ use std::io;
 
 fn main() -> io::Result<()> {
     
-    let mode = ui::mode_selection_menu().unwrap();
+    //let mode = ui::mode_selection_menu().unwrap();
+    //let mode = 1;
     
-    let config = config::read_config(mode);
-    let mut plugins = files::get_active_mods(&config.data, &config.plugins);
-    let mut mods = files::read_datadir(&config.mods).unwrap();
+    //let config = config::read_config(mode);
+    //let mut plugins = files::get_active_mods(&config.data, &config.plugins);
+    //let mut mods = files::read_datadir(&config.mods).unwrap();
 
+    //let test = files::read_directory(&paths::Path::from("/home/elmo")).unwrap();
+    let mut test: Vec<String> = Vec::new();
+    files::find_plugins(&paths::Path::from("/data/storage/SteamLX/steamapps/common/Skyrim Special Edition/"), &mut test)?;
 
+    for i in test {
+        println!("{}", i);
+    }
+
+   /* 
     loop {
 
         match ui::plugin_menu(&mut plugins, &mut mods, config.clone(), mode).unwrap() {
@@ -31,6 +40,7 @@ fn main() -> io::Result<()> {
             None => break,
         }
     }
+    */
 
     Ok(())
 

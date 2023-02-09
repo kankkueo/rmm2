@@ -1,29 +1,44 @@
 use std::fs;
+//use std::path::Path;
 use crate::loadorder::Plugin;
 use crate::paths::Path;
 use std::io;
 
-pub fn read_datadir(path: &Path) -> io::Result<Vec<String>> {
-    let mut data = String::new();
-    let mut data_v: Vec<String> = Vec::new();
-    let dir = fs::read_dir(path.as_str())?;
-    for i in dir {
-        let i = i.unwrap();
-        data.push_str(&format!("{:?}",i.file_name()));
-    }
-    for i in data.split('"') {
-        if i.len() > 1  {
-            data_v.push(format_mod_name(i));
-        }
+// read aĺl files in a directory
+pub fn read_directory(path: &Path) -> io::Result<Vec<String>> {
+    let mut entries: Vec<String> = Vec::new();
+
+    for entry in fs::read_dir(path.as_str())? {
+        let filename = entry?.file_name().to_str().unwrap().to_string();
+        entries.push(filename);
     }
 
-    data_v.sort();
-    Ok(data_v)
+    Ok(entries)
+}
+
+// recursively goes through mod directories and finds all plugin files
+pub fn find_plugins(path: &Path, plugins: &mut Vec<String>) -> io::Result<()> {
+
+    for entry in fs::read_dir(path.as_str())? {
+        let entry = entry?;
+        if entry.path().is_dir() {
+            // remove once std:path:Path in implemented
+            let paath = Path::from(entry.path().to_str().unwrap());
+            find_plugins(&paath, plugins)?;
+        }
+        else {
+            let filename = entry.file_name().to_str().unwrap().to_string();
+            if filename.contains(".esp") || filename.contains(".esm") {
+                plugins.push(filename);
+            }
+        }
+    }
+    Ok(())
 }
 
 fn read_plugins_dir(path: &Path) -> Vec<String> {
     let mut plugins: Vec<String> = Vec::new();
-    let data: Vec<String> = read_datadir(path).unwrap();
+    let data: Vec<String> = read_directory(path).unwrap();
 
     for i in data.iter() {
         if i.contains(".esp") || i.contains(".esm") {

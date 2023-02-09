@@ -5,7 +5,16 @@ use std::io;
 use crate::modinstall::utils::dir::{cap_dir, fix_case};
 use crate::paths::Path;
 use crate::ui::fileexplorer;
-use crate::files::read_datadir;
+use crate::files::read_directory;
+
+pub enum Mode {
+    SkyrimSE,
+    Skyrim,
+    Oblivion,
+    Fallout4,
+    Falloutnv,
+    Fallout3,
+}
 
 #[derive(Deserialize, Serialize)]
 struct GamepathsT {
@@ -111,7 +120,7 @@ fn create_plugin_file(path: &Path) -> io::Result<()> {
 }
 
 fn find_plugin_file(path: &Path) -> Option<String> {
-    match read_datadir(path) {
+    match read_directory(path) {
         Ok(x) => for i in x.iter() {
             if fix_case(i) == "plugins.txt" { 
                 return Some(i.to_string());

@@ -10,7 +10,7 @@ use tui::style::{Color, Modifier, Style};
 
 use crate::loadorder;
 use crate::modinstall::utils::FomodGroup;
-use crate::files::{write_loadorder, read_datadir};
+use crate::files::{write_loadorder, read_directory};
 use crate::config::Gamepath;
 use crate::paths::Path;
 
@@ -241,7 +241,7 @@ pub fn fileexplorer(message: &str) -> io::Result<Path> {
     let backend = TermionBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
     let mut path = Path::from("/");
-    let mut items = read_datadir(&path)?;
+    let mut items = read_directory(&path)?;
     let mut menu = utils::StateList::from(items.clone());
 
     let helps = "Arrow/Vim keys to navigate\nEnter to select directory";
@@ -304,14 +304,14 @@ pub fn fileexplorer(message: &str) -> io::Result<Path> {
             Key::Right | Key::Char('l') => match menu.state.selected() {
                 Some(x) => {
                     path.push(&items[x]);
-                    items =  read_datadir(&path)?;            
+                    items =  read_directory(&path)?;            
                     menu = utils::StateList::from(items.clone());
                 }
                 None => continue,
             }
             Key::Left | Key::Char('h') => {
                 path = path.previous();
-                items =  read_datadir(&path)?;            
+                items =  read_directory(&path)?;            
                 menu = utils::StateList::from(items.clone());
             }
             Key::Char('\n') => match menu.state.selected() {
