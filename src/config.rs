@@ -4,6 +4,8 @@ use std::env;
 use std::io;
 use crate::modinstall::utils::dir::{cap_dir, fix_case};
 use crate::paths::Path;
+use crate::loadorder::Plugin;
+//use std::path::Path;
 use crate::ui::fileexplorer;
 use crate::files::read_directory;
 
@@ -15,6 +17,18 @@ pub enum Mode {
     Falloutnv,
     Fallout3,
 }
+
+pub struct AppConfig {
+    pub mode: Mode,
+    data: Path,                 // Path to game data directory
+    plugins: Path,              // Path to plugins.txt
+    pub loadorder: Vec<Plugin>,     
+    pub mods: Vec<Plugin>,          // Installed mods
+}
+
+// NEW
+// ----------------
+// OLD
 
 #[derive(Deserialize, Serialize)]
 struct GamepathsT {
@@ -59,6 +73,10 @@ impl Gamepath {
         }
     }
 }
+
+//
+// ---
+//
 
 fn create_conf_file(conf: &Path) -> io::Result<()> {
     let dir = conf.clone().previous(); 
@@ -242,5 +260,7 @@ pub fn read_config(mode: usize) -> Gamepath {
         }
     }
 }
+
+
 
 

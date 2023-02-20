@@ -178,7 +178,7 @@ pub fn plugin_menu(plugins: &mut Vec<loadorder::Plugin>, mods: &mut Vec<String>,
         match utils::keyin() {
             Key::Char('q') => {
                 let w_plugs = plugins.clone();
-                write_loadorder(w_plugs, &paths.plugins, mode);
+                //write_loadorder(w_plugs, &paths.plugins, mode);
                 break;
             }
             Key::Right | Key::Char('l') => {

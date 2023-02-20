@@ -2,6 +2,7 @@ use std::fs;
 //use std::path::Path;
 use crate::loadorder::Plugin;
 use crate::paths::Path;
+use crate::config::Mode;
 use std::io;
 
 // read aĺl files in a directory
@@ -36,6 +37,7 @@ pub fn find_plugins(path: &Path, plugins: &mut Vec<String>) -> io::Result<()> {
     Ok(())
 }
 
+/*  OBSOLETE
 fn read_plugins_dir(path: &Path) -> Vec<String> {
     let mut plugins: Vec<String> = Vec::new();
     let data: Vec<String> = read_directory(path).unwrap();
@@ -47,6 +49,7 @@ fn read_plugins_dir(path: &Path) -> Vec<String> {
     }
     plugins
 }
+*/
 
 fn read_plugins_file(path: &Path) -> Vec<Plugin> {
     let mut plugins: Vec<Plugin> = Vec::new();
@@ -65,7 +68,8 @@ fn read_plugins_file(path: &Path) -> Vec<Plugin> {
 
 pub fn get_active_mods(path_d: &Path, path_p: &Path) -> Vec<Plugin> {
     let mut plugins = read_plugins_file(path_p);
-    let installed = read_plugins_dir(path_d);
+    let mut installed: Vec<String> = Vec::new();
+    find_plugins(path_d, &mut installed);
 
     for i in installed.iter() {
         let mut act = false;
@@ -98,21 +102,22 @@ fn format_mod_name(src: &str) -> String {
     buf 
 }
 
-pub fn write_loadorder(plugins: Vec<Plugin>, path: &Path, mode: usize) {
+pub fn write_loadorder(plugins: Vec<Plugin>, path: &Path, mode: Mode) {
     let mut buffer = String::new();
-    for i in 0..plugins.len() {
-        if mode == 1 || mode == 4 {
-            if plugins[i].active {
-                buffer.push('*');
-                buffer.push_str(&plugins[i].name);
-                buffer.push('\n');
-            }
+    let mut prefix = "";
+
+    match mode {
+        Mode::Fallout4 | Mode::SkyrimSE => {
+            prefix = "*";
         }
-        else {
-            if plugins[i].active {
-                buffer.push_str(&plugins[i].name);
-                buffer.push('\n');
-            }
+        _default => {}
+    }
+
+    for i in 0..plugins.len() {
+        if plugins[i].active {
+            buffer.push_str(prefix);
+            buffer.push_str(&plugins[i].name);
+            buffer.push('\n');
         }
     }
     fs::write(path.as_str(), buffer).unwrap();
